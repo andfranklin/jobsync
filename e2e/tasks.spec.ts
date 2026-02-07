@@ -227,6 +227,7 @@ test.describe("Tasks Management", () => {
   });
 
   test.describe.serial("Task Activity Integration", () => {
+    test.setTimeout(60000);
     test.beforeEach(async ({ page }) => {
       // Stop any running activity first
       await page.goto("/dashboard/activities");

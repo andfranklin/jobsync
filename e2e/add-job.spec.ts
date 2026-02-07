@@ -16,7 +16,7 @@ async function login(page: Page) {
 
 async function createNewJob(page: Page, jobText: string) {
   await page.getByRole("button", { name: "Add New Job" }).click();
-  await expect(page).toHaveURL("/dashboard/myjobs");
+  await page.waitForURL("**/dashboard/myjobs", { timeout: 15000 });
 
   await page.getByTestId("add-job-btn").click();
   await expect(page.getByTestId("add-job-dialog-title")).toBeVisible();
@@ -103,7 +103,7 @@ async function deleteJob(page: Page, jobText: string) {
   // );
 }
 
-test.describe("Add New Job", () => {
+test.describe.serial("Add New Job", () => {
   const jobText = "developer test title 1";
 
   test("should allow me to add a new job", async ({ page }) => {

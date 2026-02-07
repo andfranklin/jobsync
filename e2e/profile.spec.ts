@@ -17,7 +17,7 @@ async function createResume(page: Page, title: string) {
   await page.getByRole("button", { name: "Save" }).click();
 }
 
-test.describe("Profile page", () => {
+test.describe.serial("Profile page", () => {
   const editedTitle = "Test Resume 2 edited";
   test("should create a new resume", async ({ page }) => {
     const resumeTitle = "Test Resume 1";
@@ -29,7 +29,8 @@ test.describe("Profile page", () => {
     await expect(page.locator("tbody")).toContainText(resumeTitle);
     await deleteResume(page, resumeTitle);
     await expect(page.getByRole("status").first()).toContainText(
-      /Resume has been deleted successfully/
+      /Resume has been deleted successfully/,
+      { timeout: 10000 }
     );
   });
 

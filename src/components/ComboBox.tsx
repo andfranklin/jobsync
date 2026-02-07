@@ -70,6 +70,14 @@ export function Combobox({ options, field, creatable }: ComboboxProps) {
         default:
           break;
       }
+      if (!response || !response.id) {
+        toast({
+          variant: "destructive",
+          title: "Error!",
+          description: "Failed to create option.",
+        });
+        return;
+      }
       options.unshift(response);
       field.onChange(response.id);
       setIsPopoverOpen(false);

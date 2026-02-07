@@ -204,6 +204,14 @@ export const createLocation = async (
       throw new Error("Please provide location name");
     }
 
+    const existingLocation = await prisma.location.findFirst({
+      where: { value, createdBy: user.id },
+    });
+
+    if (existingLocation) {
+      return { data: existingLocation, success: true };
+    }
+
     const location = await prisma.location.create({
       data: { label, value, createdBy: user.id },
     });

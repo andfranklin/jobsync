@@ -120,18 +120,10 @@ export const addCompany = async (
 
     const value = company.trim().toLowerCase();
 
-    const companyExists = await prisma.company.findUnique({
-      where: {
-        value,
-      },
-    });
-
-    if (companyExists) {
-      throw new Error("Company already exists!");
-    }
-
-    const res = await prisma.company.create({
-      data: {
+    const res = await prisma.company.upsert({
+      where: { value },
+      update: {},
+      create: {
         createdBy: user.id,
         value,
         label: company,
