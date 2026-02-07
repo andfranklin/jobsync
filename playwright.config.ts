@@ -1,10 +1,26 @@
 import { defineConfig, devices } from "@playwright/test";
+import { execSync } from "child_process";
+import fs from "fs";
 import path from "path";
 
 // Use a separate test database to avoid modifying production data
 const testDbPath = path.resolve(__dirname, "prisma", "test-e2e.db");
 process.env.DATABASE_URL = `file:${testDbPath}`;
 process.env.USER_EMAIL = "admin@example.com";
+
+// Ensure the database exists with schema and seed data before the webServer
+// starts. Playwright starts the webServer before globalSetup, so the DB must
+// be fully ready here to prevent errors during server startup.
+if (!fs.existsSync(testDbPath)) {
+  execSync("npx prisma db push --skip-generate", {
+    stdio: "inherit",
+    cwd: __dirname,
+  });
+  execSync("npm run seed", {
+    stdio: "inherit",
+    cwd: __dirname,
+  });
+}
 
 /**
  * See https://playwright.dev/docs/test-configuration.

@@ -1,28 +1,34 @@
 import { execSync } from "child_process";
-import fs from "fs";
 import path from "path";
 
 export default function globalSetup() {
   const testDbPath = path.resolve(__dirname, "..", "prisma", "test-e2e.db");
-  const testDbJournalPath = testDbPath + "-journal";
   const projectRoot = path.resolve(__dirname, "..");
 
-  // Remove existing test database for a clean start
-  if (fs.existsSync(testDbPath)) {
-    fs.unlinkSync(testDbPath);
-  }
-  if (fs.existsSync(testDbJournalPath)) {
-    fs.unlinkSync(testDbJournalPath);
+  // Clear all data from the test database without deleting the file.
+  // The webServer is already running at this point (Playwright starts it
+  // before globalSetup), so we must preserve the file inode to avoid
+  // SQLITE_READONLY_DBMOVED on the server's open SQLite connection.
+  console.log("Clearing test database data...");
+  const tables = execSync(
+    `sqlite3 "${testDbPath}" "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma_%';"`,
+    { encoding: "utf-8" }
+  )
+    .trim()
+    .split("\n")
+    .filter(Boolean);
+
+  if (tables.length > 0) {
+    const deleteStatements = tables
+      .map((t) => `DELETE FROM "${t}";`)
+      .join(" ");
+    execSync(
+      `sqlite3 "${testDbPath}" "PRAGMA foreign_keys=OFF; ${deleteStatements} PRAGMA foreign_keys=ON;"`,
+      { stdio: "inherit" }
+    );
   }
 
-  // Create test database schema
-  console.log("Creating test database schema...");
-  execSync("npx prisma db push --skip-generate", {
-    stdio: "inherit",
-    cwd: projectRoot,
-  });
-
-  // Seed test database
+  // Seed test database with fresh data
   console.log("Seeding test database...");
   execSync("npm run seed", {
     stdio: "inherit",
