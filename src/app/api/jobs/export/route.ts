@@ -12,7 +12,7 @@ const FIELDS: string[] = [
   "Company",
   "JobTitle",
   "jobType",
-  "Location",
+  "Locations",
   "JobSource",
   "Status",
 ];
@@ -50,7 +50,7 @@ const transformJobData = (
     Company: extractLabel(job.Company),
     JobTitle: extractLabel(job.JobTitle),
     jobType: mapJobType(job.jobType),
-    Location: extractLabel(job.Location),
+    Locations: job.Locations?.map((l: any) => l.label).join(", ") || "N/A",
     JobSource: extractLabel(job.JobSource),
     Status: extractLabel(job.Status),
   };

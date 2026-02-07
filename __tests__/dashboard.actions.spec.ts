@@ -109,7 +109,7 @@ describe("Dashboard Actions", () => {
           JobTitle: true,
           Company: true,
           Status: true,
-          Location: true,
+          Locations: true,
         },
         orderBy: {
           appliedDate: "desc",

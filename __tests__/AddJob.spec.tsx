@@ -109,7 +109,7 @@ describe("AddJob Component", () => {
     await user.click(saveBtn);
     expect(screen.getByText("Job title is required.")).toBeInTheDocument();
     expect(screen.getByText("Company name is required.")).toBeInTheDocument();
-    expect(screen.getByText("Location is required.")).toBeInTheDocument();
+    expect(screen.getByText("At least one location is required.")).toBeInTheDocument();
     expect(screen.getByText("Source is required.")).toBeInTheDocument();
     expect(
       screen.getByText("Job description is required.")
@@ -136,7 +136,7 @@ describe("AddJob Component", () => {
     expect(options[0].textContent).toBe("Google");
   });
   it("should load and show the location combobox list", async () => {
-    const locationCombobox = screen.getByLabelText("Job Location");
+    const locationCombobox = screen.getByLabelText("Job Location(s)");
     await user.click(locationCombobox);
     const options = screen.getAllByRole("option");
     expect(options.length).toBeGreaterThan(0);
@@ -188,6 +188,8 @@ describe("AddJob Component", () => {
       name: "Remote",
     });
     await user.click(selectedLocation);
+    // Close the multi-select popover by pressing Escape
+    await user.keyboard("{Escape}");
 
     const sourceInput = screen.getByRole("combobox", {
       name: /job source/i,
@@ -214,7 +216,7 @@ describe("AddJob Component", () => {
       expect(addJob).toHaveBeenCalledWith({
         title: "1xx",
         company: "2zz",
-        location: "1yy",
+        location: ["1yy"],
         type: "FT",
         source: "1359dac4-a397-4461-b747-382706dcbe79",
         status: "d7ba200a-6dc1-4ea8-acff-29ebb0d4676a",

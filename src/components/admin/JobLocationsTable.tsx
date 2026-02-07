@@ -38,7 +38,7 @@ function JobLocationsTable({
     deleteAction: false,
   });
   const onDeleteJobLocation = (location: JobLocation) => {
-    if (location._count?.jobsApplied! > 0) {
+    if (location._count?.jobs! > 0) {
       setAlert({
         openState: true,
         title: "Applied jobs exist!",
@@ -95,7 +95,7 @@ function JobLocationsTable({
                   {location.value}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {location._count?.jobsApplied}
+                  {location._count?.jobs}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

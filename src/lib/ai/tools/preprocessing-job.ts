@@ -45,8 +45,13 @@ export const convertJobToText = (job: JobResponse): Promise<string> => {
       description,
       JobTitle: { label: jobTitle },
       Company: { label: companyName },
-      Location: { label: location },
+      Locations,
     } = job;
+
+    const location =
+      Locations && Locations.length > 0
+        ? Locations.map((l) => l.label).join(", ")
+        : "Not specified";
 
     const jobText = `
 Job Title: ${jobTitle}

@@ -43,6 +43,7 @@ import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { redirect } from "next/navigation";
 import { Combobox } from "../ComboBox";
+import { MultiSelectCombobox } from "../MultiSelectCombobox";
 import { Resume } from "@/models/profile.model";
 import CreateResume from "../profile/CreateResume";
 import { getResumeList } from "@/actions/profile.actions";
@@ -77,6 +78,7 @@ export function AddJob({
       dueDate: addDays(new Date(), 3),
       status: jobStatuses[0].id,
       salaryRange: "1",
+      location: [],
     },
   });
 
@@ -101,7 +103,7 @@ export function AddJob({
           userId: editJob.userId,
           title: editJob.JobTitle.id,
           company: editJob.Company.id,
-          location: editJob.Location.id,
+          location: editJob.Locations?.map((l) => l.id) ?? [],
           type: editJob.jobType,
           source: editJob.JobSource.id,
           status: editJob.Status.id,
@@ -265,19 +267,20 @@ export function AddJob({
                     )}
                   />
                 </div>
-                {/* Location */}
+                {/* Location(s) */}
                 <div>
                   <FormField
                     control={form.control}
                     name="location"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Job Location</FormLabel>
+                        <FormLabel>Job Location(s)</FormLabel>
                         <FormControl>
-                          <Combobox
+                          <MultiSelectCombobox
                             options={locations}
                             field={field}
                             creatable
+                            placeholder="Select locations"
                           />
                         </FormControl>
                         <FormMessage />

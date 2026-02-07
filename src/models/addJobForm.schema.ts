@@ -18,12 +18,8 @@ export const AddJobFormSchema = z.object({
       message: "Company name must be at least 2 characters.",
     }),
   location: z
-    .string({
-      error: "Location is required.",
-    })
-    .min(2, {
-      message: "Location name must be at least 2 characters.",
-    }),
+    .array(z.string())
+    .min(1, { message: "At least one location is required." }),
   type: z.string().min(1),
   source: z
     .string({

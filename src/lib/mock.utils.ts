@@ -125,9 +125,11 @@ export function getMockList(
         value = job.JobTitle.value;
         createdBy = job.Company.createdBy;
       } else if (type === "locations") {
-        key = job.Location.id;
-        label = job.Location.label;
-        value = job.Location.value;
+        if (!job.Locations || job.Locations.length === 0) return;
+        // Use the first location for mock data extraction
+        key = job.Locations[0].id;
+        label = job.Locations[0].label;
+        value = job.Locations[0].value;
         createdBy = job.Company.createdBy;
       } else {
         return;

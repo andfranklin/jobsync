@@ -111,7 +111,15 @@ function MyJobsTable({
                   {job.Company?.label}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  {job.Location?.label}
+                  {job.Locations && job.Locations.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {job.Locations.map((loc) => (
+                        <Badge key={loc.id} variant="secondary" className="text-xs">
+                          {loc.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
                 </TableCell>
                 <TableCell>
                   {new Date() > job.dueDate && job.Status?.value === "draft" ? (

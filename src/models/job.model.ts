@@ -7,7 +7,7 @@ export interface JobForm {
   title: string;
   type: string;
   company: string;
-  location: string;
+  location: string[];
   status: string;
   dueDate: Date;
   dateApplied?: Date;
@@ -23,7 +23,7 @@ export interface JobResponse {
   JobTitle: JobTitle;
   Company: Company;
   Status: JobStatus;
-  Location: JobLocation;
+  Locations: JobLocation[];
   JobSource: JobSource;
   jobType: string;
   createdAt: Date;
@@ -78,7 +78,7 @@ export interface JobLocation {
   country?: string;
   createdBy: string;
   _count?: {
-    jobsApplied: number;
+    jobs: number;
   };
 }
 

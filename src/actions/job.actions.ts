@@ -63,7 +63,7 @@ export const getJobsList = async (
       whereClause.OR = [
         { JobTitle: { label: { contains: search } } },
         { Company: { label: { contains: search } } },
-        { Location: { label: { contains: search } } },
+        { Locations: { some: { label: { contains: search } } } },
         { description: { contains: search } },
       ];
     }
@@ -80,7 +80,7 @@ export const getJobsList = async (
           jobType: true,
           Company: true,
           Status: true,
-          Location: true,
+          Locations: true,
           dueDate: true,
           appliedDate: true,
           description: false,
@@ -131,7 +131,7 @@ export async function* getJobsIterator(filter?: string, pageSize = 200) {
         jobType: true,
         Company: true,
         Status: true,
-        Location: true,
+        Locations: true,
         dueDate: true,
         applied: true,
         appliedDate: true,
@@ -173,7 +173,7 @@ export const getJobDetails = async (
         JobTitle: true,
         Company: true,
         Status: true,
-        Location: true,
+        Locations: true,
         Resume: {
           include: {
             File: true,
@@ -253,7 +253,9 @@ export const addJob = async (
       data: {
         jobTitleId: title,
         companyId: company,
-        locationId: location,
+        Locations: {
+          connect: location.map((id) => ({ id })),
+        },
         statusId: status,
         jobSourceId: source,
         salaryRange: salaryRange,
@@ -312,7 +314,9 @@ export const updateJob = async (
       data: {
         jobTitleId: title,
         companyId: company,
-        locationId: location,
+        Locations: {
+          set: location.map((id) => ({ id })),
+        },
         statusId: status,
         jobSourceId: source,
         salaryRange: salaryRange,

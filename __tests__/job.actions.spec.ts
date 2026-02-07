@@ -54,7 +54,7 @@ describe("jobActions", () => {
     id: "job-id",
     title: "job-title-id",
     company: "company-id",
-    location: "location-id",
+    location: ["location-id"],
     type: "FT",
     status: "status-id",
     source: "source-id",
@@ -185,7 +185,7 @@ describe("jobActions", () => {
               OR: [
                 { JobTitle: { label: { contains: "Amazon" } } },
                 { Company: { label: { contains: "Amazon" } } },
-                { Location: { label: { contains: "Amazon" } } },
+                { Locations: { some: { label: { contains: "Amazon" } } } },
                 { description: { contains: "Amazon" } },
               ],
             }),
@@ -197,7 +197,7 @@ describe("jobActions", () => {
               OR: [
                 { JobTitle: { label: { contains: "Amazon" } } },
                 { Company: { label: { contains: "Amazon" } } },
-                { Location: { label: { contains: "Amazon" } } },
+                { Locations: { some: { label: { contains: "Amazon" } } } },
                 { description: { contains: "Amazon" } },
               ],
             }),
@@ -240,7 +240,7 @@ describe("jobActions", () => {
 
         const findManyCall = (prisma.job.findMany as jest.Mock).mock.calls[0][0];
         expect(findManyCall.where.OR).toContainEqual({
-          Location: { label: { contains: "Remote" } },
+          Locations: { some: { label: { contains: "Remote" } } },
         });
       });
 
@@ -364,7 +364,7 @@ describe("jobActions", () => {
         JobTitle: true,
         Company: true,
         Status: true,
-        Location: true,
+        Locations: true,
         Resume: {
           include: {
             File: true,
@@ -481,7 +481,9 @@ describe("jobActions", () => {
         data: {
           jobTitleId: jobData.title,
           companyId: jobData.company,
-          locationId: jobData.location,
+          Locations: {
+            connect: jobData.location.map((id: string) => ({ id })),
+          },
           statusId: jobData.status,
           jobSourceId: jobData.source,
           salaryRange: jobData.salaryRange,
@@ -512,7 +514,9 @@ describe("jobActions", () => {
         data: {
           jobTitleId: jobData.title,
           companyId: jobData.company,
-          locationId: jobData.location,
+          Locations: {
+            connect: jobData.location.map((id: string) => ({ id })),
+          },
           statusId: jobData.status,
           jobSourceId: jobData.source,
           salaryRange: jobData.salaryRange,
@@ -595,7 +599,7 @@ describe("jobActions", () => {
       id: "job-id",
       title: "job-title-id",
       company: "company-id",
-      location: "location-id",
+      location: ["location-id"],
       type: "FT",
       status: {
         id: "status-id",

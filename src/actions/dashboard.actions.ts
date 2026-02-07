@@ -59,7 +59,7 @@ export const getRecentJobs = async (): Promise<any | undefined> => {
         JobTitle: true,
         Company: true,
         Status: true,
-        Location: true,
+        Locations: true,
       },
       orderBy: {
         appliedDate: "desc",

@@ -42,7 +42,7 @@ export const getJobLocationsList = async (
                 value: true,
                 _count: {
                   select: {
-                    jobsApplied: {
+                    jobs: {
                       where: {
                         applied: true,
                       },
@@ -53,7 +53,7 @@ export const getJobLocationsList = async (
             }
           : {}),
         orderBy: {
-          jobsApplied: {
+          jobs: {
             _count: "desc",
           },
         },
@@ -105,7 +105,11 @@ export const deleteJobLocationById = async (
 
     const jobs = await prisma.job.count({
       where: {
-        locationId,
+        Locations: {
+          some: {
+            id: locationId,
+          },
+        },
       },
     });
 

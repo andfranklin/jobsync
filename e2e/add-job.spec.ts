@@ -50,7 +50,7 @@ async function createNewJob(page: Page, jobText: string) {
   await expect(page.getByLabel("Company")).toContainText(companyText, {
     timeout: 10000,
   });
-  await page.getByLabel("Job Location").click();
+  await page.getByLabel("Job Location(s)").click();
   await page.getByPlaceholder("Create or Search location").click();
   const locationText = "location test";
   await page.getByPlaceholder("Create or Search location").fill(locationText);
@@ -66,7 +66,9 @@ async function createNewJob(page: Page, jobText: string) {
   } else if (await createLocation.isVisible()) {
     await createLocation.click();
   }
-  await expect(page.getByLabel("Job Location")).toContainText(locationText, {
+  // Close the multi-select popover before proceeding
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("1 location selected")).toBeVisible({
     timeout: 10000,
   });
   await page.getByText("Part-time").click();
@@ -132,9 +134,7 @@ test.describe.serial("Add New Job", () => {
       "developer test title"
     );
     await expect(page.getByLabel("Company")).toContainText("company test");
-    await expect(page.getByLabel("Job Location")).toContainText(
-      "location test"
-    );
+    await expect(page.getByText("1 location selected")).toBeVisible();
     await expect(page.getByLabel("Job Source")).toContainText("Indeed");
     await expect(page.getByLabel("Select Job Status")).toContainText("Draft");
     await expect(page.getByRole("paragraph")).toContainText("test description");

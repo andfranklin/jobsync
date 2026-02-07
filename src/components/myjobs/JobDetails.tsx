@@ -63,7 +63,10 @@ function JobDetails({ job }: { job: JobResponse }) {
               {job?.Company?.label}
               <CardTitle>{job?.JobTitle?.label}</CardTitle>
               <CardDescription>
-                {job?.Location?.label} - {getJobType(job?.jobType)}
+                {job?.Locations && job.Locations.length > 0
+                  ? job.Locations.map((l: any) => l.label).join(", ")
+                  : "No location"}{" "}
+                - {getJobType(job?.jobType)}
               </CardDescription>
             </div>
             <div>

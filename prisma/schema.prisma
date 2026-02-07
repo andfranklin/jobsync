@@ -182,7 +182,7 @@ model Location {
   value          String
   stateProv      String?
   country        String?
-  jobsApplied    Job[]
+  jobs           Job[]
   createdBy      String // userId
   user           User             @relation(fields: [createdBy], references: [id])
   educations     Education[]
@@ -235,8 +235,7 @@ model Job {
   JobSource   JobSource?  @relation(fields: [jobSourceId], references: [id])
   jobSourceId String?
   salaryRange String?
-  Location    Location?   @relation(fields: [locationId], references: [id])
-  locationId  String?
+  Locations   Location[]
   Interview   Interview[]
   Resume      Resume?     @relation(fields: [resumeId], references: [id])
   resumeId    String?
