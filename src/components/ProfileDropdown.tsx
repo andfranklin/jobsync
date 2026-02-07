@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PowerIcon, Settings, Info } from "lucide-react";
-import { Button } from "./ui/button";
+import { Settings, Info } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -17,10 +16,9 @@ import { SupportDialog } from "./SupportDialog";
 
 interface ProfileDropdownProps {
   user: any;
-  signOutAction: () => void;
 }
 
-export function ProfileDropdown({ user, signOutAction }: ProfileDropdownProps) {
+export function ProfileDropdown({ user }: ProfileDropdownProps) {
   const [supportDialogOpen, setSupportDialogOpen] = useState(false);
 
   return (
@@ -45,15 +43,6 @@ export function ProfileDropdown({ user, signOutAction }: ProfileDropdownProps) {
             <Info className="w-5 mr-2" />
             Support
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <form action={signOutAction}>
-            <DropdownMenuItem>
-              <Button variant="ghost" className="w-full">
-                <PowerIcon className="w-5" />
-                <div className="hidden md:block mx-2">Logout</div>
-              </Button>
-            </DropdownMenuItem>
-          </form>
         </DropdownMenuContent>
       </DropdownMenu>
 

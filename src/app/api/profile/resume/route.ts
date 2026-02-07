@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { getCurrentUser } from "@/utils/user.utils";
 import { NextRequest, NextResponse } from "next/server";
 import {
   createResumeProfile,
@@ -11,20 +11,15 @@ import fs from "fs";
 import { getTimestampedFileName } from "@/lib/utils";
 
 export const POST = async (req: NextRequest) => {
-  const session = await auth();
-  const userId = session?.accessToken.sub;
+  const user = await getCurrentUser();
   const dataPath = process.env.NODE_ENV !== "production" ? "data" : "/data";
   let filePath;
 
   try {
-    if (!session || !session.user) {
+    if (!user) {
       return NextResponse.json(
-        {
-          error: "Not Authenticated",
-        },
-        {
-          status: 401,
-        }
+        { error: "No user found. Run the seed script." },
+        { status: 500 }
       );
     }
     const formData = await req.formData();
@@ -78,18 +73,13 @@ export const POST = async (req: NextRequest) => {
 };
 
 export const GET = async (req: NextRequest) => {
-  const session = await auth();
-  const userId = session?.accessToken.sub;
+  const user = await getCurrentUser();
 
   try {
-    if (!session || !session.user) {
+    if (!user) {
       return NextResponse.json(
-        {
-          error: "Not Authenticated",
-        },
-        {
-          status: 401,
-        }
+        { error: "No user found. Run the seed script." },
+        { status: 500 }
       );
     }
 

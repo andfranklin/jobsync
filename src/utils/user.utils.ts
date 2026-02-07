@@ -1,17 +1,9 @@
 import "server-only";
-import { auth } from "@/auth";
+import prisma from "@/lib/db";
 import { CurrentUser } from "@/models/user.model";
 
-export const getCurrentUser = async () => {
-  const session = await auth();
-  if (!session?.accessToken) return null;
-  const { sub, name, email, iat, exp } = session?.accessToken;
-  const user: CurrentUser = {
-    id: sub,
-    name,
-    email,
-    iat,
-    exp,
-  };
-  return user;
+export const getCurrentUser = async (): Promise<CurrentUser | null> => {
+  const user = await prisma.user.findFirst();
+  if (!user) return null;
+  return { id: user.id, name: user.name, email: user.email };
 };

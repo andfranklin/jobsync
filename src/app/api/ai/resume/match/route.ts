@@ -1,6 +1,6 @@
 import "server-only";
 
-import { auth } from "@/auth";
+import { getCurrentUser } from "@/utils/user.utils";
 import { NextRequest, NextResponse } from "next/server";
 import { streamText, Output } from "ai";
 import { getModel } from "@/lib/ai/providers";
@@ -22,11 +22,11 @@ import { AiModel } from "@/models/ai.model";
  * Single comprehensive LLM call for resume-job matching
  */
 export const POST = async (req: NextRequest) => {
-  const session = await auth();
-  const userId = session?.accessToken?.sub;
+  const user = await getCurrentUser();
+  const userId = user?.id;
 
-  if (!session || !session.user || !userId) {
-    return NextResponse.json({ message: "Not Authenticated" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ message: "No user found. Run the seed script." }, { status: 500 });
   }
 
   // Rate limiting

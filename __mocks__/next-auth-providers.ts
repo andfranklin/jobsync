@@ -1,9 +1,4 @@
-const Credentials = jest.fn((config: any) => ({
-  id: "credentials",
-  name: "Credentials",
-  type: "credentials",
-  credentials: config?.credentials || {},
-  authorize: config?.authorize || jest.fn(),
-}));
-
-export default Credentials;
+// Stub mock — next-auth has been removed from the project
+export default function Credentials() {
+  return { id: "credentials", name: "Credentials" };
+}

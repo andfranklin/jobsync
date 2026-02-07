@@ -5,10 +5,6 @@ import path from "path";
 const testDbPath = path.resolve(__dirname, "prisma", "test-e2e.db");
 process.env.DATABASE_URL = `file:${testDbPath}`;
 process.env.USER_EMAIL = "admin@example.com";
-process.env.USER_PASSWORD = "password123";
-process.env.NEXTAUTH_URL = "http://localhost:3001";
-process.env.AUTH_SECRET =
-  process.env.AUTH_SECRET || "test-secret-for-e2e-only";
 
 /**
  * See https://playwright.dev/docs/test-configuration.

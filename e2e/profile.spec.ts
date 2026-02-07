@@ -1,14 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
-test.beforeEach(async ({ page, baseURL }) => {
-  await page.goto("/");
-  await page.getByPlaceholder("id@example.com").click();
-  await page.getByPlaceholder("id@example.com").fill("admin@example.com");
-  await page.getByLabel("Password").click();
-  await page.getByLabel("Password").fill("password123");
-  await page.getByRole("button", { name: "Login" }).click();
-
-  await expect(page).toHaveURL(baseURL + "/dashboard");
+test.beforeEach(async ({ page }) => {
+  await page.goto("/dashboard");
 });
 
 async function createResume(page: Page, title: string) {

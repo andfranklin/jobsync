@@ -1,18 +1,8 @@
-const mockAuth = jest.fn();
-const mockSignIn = jest.fn();
-const mockSignOut = jest.fn();
-const mockHandlers = { GET: jest.fn(), POST: jest.fn() };
-
-const NextAuth = jest.fn(() => ({
-  auth: mockAuth,
-  handlers: mockHandlers,
-  signIn: mockSignIn,
-  signOut: mockSignOut,
-}));
-
-// Export both default and named exports
-export default NextAuth;
-export const auth = mockAuth;
-export const signIn = mockSignIn;
-export const signOut = mockSignOut;
-export const handlers = mockHandlers;
+// Stub mock — next-auth has been removed from the project but some transitive
+// imports still resolve it during Jest module loading.
+export default function NextAuth() {
+  return { auth: jest.fn(), handlers: {}, signIn: jest.fn(), signOut: jest.fn() };
+}
+export const auth = jest.fn();
+export const signIn = jest.fn();
+export const signOut = jest.fn();
