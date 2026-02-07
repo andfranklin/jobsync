@@ -10,8 +10,10 @@ export {
 export {
   RESUME_REVIEW_SYSTEM_PROMPT,
   JOB_MATCH_SYSTEM_PROMPT,
+  JOB_EXTRACT_SYSTEM_PROMPT,
   buildResumeReviewPrompt,
   buildJobMatchPrompt,
+  buildJobExtractPrompt,
 } from "./prompts";
 
 // Analysis tools
@@ -42,6 +44,7 @@ export {
   normalizeBullets,
   normalizeHeadings,
   extractMetadata,
+  extractTextFromHtml,
   validateText,
   type TextMetadata,
 } from "./tools/text-processing";

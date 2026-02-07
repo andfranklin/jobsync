@@ -71,6 +71,43 @@ const hasContactPatterns = (text: string): boolean => {
   return emailPattern.test(text) || phonePattern.test(text);
 };
 
+// FULL-PAGE HTML TEXT EXTRACTION
+
+/**
+ * Extracts readable text from a full HTML page.
+ * Preserves JSON-LD structured data (used by many job sites for SEO),
+ * then removes script/style blocks and strips remaining HTML tags.
+ * Designed for scraping web pages before sending to AI for analysis.
+ */
+export const extractTextFromHtml = (html: string): string => {
+  if (!html) return "";
+  let text = html;
+
+  // Extract JSON-LD structured data before stripping scripts.
+  // Many job sites (Meta, LinkedIn, etc.) embed all job content in
+  // <script type="application/ld+json"> tags following the Schema.org
+  // JobPosting format. This data is stripped when we remove <script> tags,
+  // so we extract it first and prepend it to the output.
+  const jsonLdBlocks: string[] = [];
+  const jsonLdRegex =
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = jsonLdRegex.exec(text)) !== null) {
+    jsonLdBlocks.push(match[1].trim());
+  }
+  const jsonLdText = jsonLdBlocks.join("\n");
+
+  // Remove all script and style blocks
+  text = text.replace(/<script[\s\S]*?<\/script>/gi, "");
+  text = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+
+  // Strip remaining HTML tags
+  const htmlText = removeHtmlTags(text);
+
+  // Combine: JSON-LD first (structured data), then page text
+  return jsonLdText ? `${jsonLdText}\n${htmlText}`.trim() : htmlText;
+};
+
 // VALIDATION HELPERS
 
 export interface ValidationError {

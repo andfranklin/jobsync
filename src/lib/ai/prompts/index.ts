@@ -18,3 +18,9 @@ export {
   JOB_MATCH_SYSTEM_PROMPT,
   buildJobMatchPrompt,
 } from "./job-match";
+
+// Job Extraction exports
+export {
+  JOB_EXTRACT_SYSTEM_PROMPT,
+  buildJobExtractPrompt,
+} from "./job-extract";

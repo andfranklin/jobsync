@@ -7,13 +7,45 @@ import { screen, render, waitFor } from "@testing-library/react";
 import { getCurrentUser } from "@/utils/user.utils";
 import userEvent from "@testing-library/user-event";
 import { format } from "date-fns";
-import { addJob } from "@/actions/job.actions";
+import { addJob, createLocation } from "@/actions/job.actions";
+import { addCompany } from "@/actions/company.actions";
+import { createJobTitle } from "@/actions/jobtitle.actions";
+import { toast } from "@/components/ui/use-toast";
+
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
 }));
 
 jest.mock("@/actions/job.actions", () => ({
   addJob: jest.fn().mockResolvedValue({ success: true }),
+  updateJob: jest.fn().mockResolvedValue({ success: true }),
+  createLocation: jest.fn().mockResolvedValue({
+    success: true,
+    data: { id: "new-loc", label: "New Location", value: "new location" },
+  }),
+}));
+
+jest.mock("@/actions/company.actions", () => ({
+  addCompany: jest.fn().mockResolvedValue({
+    success: true,
+    data: { id: "new-company", label: "Acme Corp", value: "acme corp" },
+  }),
+}));
+
+jest.mock("@/actions/jobtitle.actions", () => ({
+  createJobTitle: jest.fn().mockResolvedValue({
+    id: "new-title",
+    label: "Software Engineer",
+    value: "software engineer",
+  }),
+}));
+
+jest.mock("@/actions/profile.actions", () => ({
+  getResumeList: jest.fn().mockResolvedValue({ data: [] }),
+}));
+
+jest.mock("@/components/ui/use-toast", () => ({
+  toast: jest.fn(),
 }));
 
 jest.mock("next/navigation", () => ({
@@ -228,6 +260,218 @@ describe("AddJob Component", () => {
         jobDescription: "<p>New Job Description</p>",
         jobUrl: undefined,
         applied: false,
+      });
+    });
+  });
+
+  describe("Auto-fill", () => {
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it("should have auto-fill button disabled when URL is empty", () => {
+      const autoFillBtn = screen.getByRole("button", { name: /auto-fill/i });
+      expect(autoFillBtn).toBeDisabled();
+    });
+
+    it("should have auto-fill button enabled when URL has a value", async () => {
+      const urlInput = screen.getByPlaceholderText(
+        "Copy and paste job link here",
+      );
+      await user.type(urlInput, "https://example.com/job/123");
+      const autoFillBtn = screen.getByRole("button", { name: /auto-fill/i });
+      expect(autoFillBtn).toBeEnabled();
+    });
+
+    it("should call the extract API with correct payload on auto-fill", async () => {
+      localStorage.setItem(
+        "aiSettings",
+        JSON.stringify({ provider: "ollama", model: "llama3.2" }),
+      );
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          title: "Software Engineer",
+          company: "Acme Corp",
+          locations: ["San Francisco, CA"],
+          description: "<p>Great job opportunity</p>",
+          jobType: "FT",
+          salaryMin: 120000,
+          salaryMax: 150000,
+        }),
+      });
+
+      const urlInput = screen.getByPlaceholderText(
+        "Copy and paste job link here",
+      );
+      await user.type(urlInput, "https://example.com/job/123");
+      const autoFillBtn = screen.getByRole("button", { name: /auto-fill/i });
+      await user.click(autoFillBtn);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/ai/job/extract",
+          expect.objectContaining({
+            method: "POST",
+            body: JSON.stringify({
+              url: "https://example.com/job/123",
+              selectedModel: { provider: "ollama", model: "llama3.2" },
+            }),
+          }),
+        );
+      });
+    });
+
+    it("should show success toast after successful auto-fill", async () => {
+      localStorage.setItem(
+        "aiSettings",
+        JSON.stringify({ provider: "ollama", model: "llama3.2" }),
+      );
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          title: "Software Engineer",
+          company: "Acme Corp",
+          locations: ["San Francisco, CA"],
+          description: "<p>Great job opportunity</p>",
+          jobType: "FT",
+          salaryMin: 120000,
+          salaryMax: 150000,
+        }),
+      });
+
+      const urlInput = screen.getByPlaceholderText(
+        "Copy and paste job link here",
+      );
+      await user.type(urlInput, "https://example.com/job/123");
+      const autoFillBtn = screen.getByRole("button", { name: /auto-fill/i });
+      await user.click(autoFillBtn);
+
+      await waitFor(() => {
+        expect(toast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            variant: "success",
+            description: "Form auto-filled from job posting.",
+          }),
+        );
+      });
+    });
+
+    it("should show error toast when no AI model is configured", async () => {
+      // localStorage has no "ai-model" key
+      const urlInput = screen.getByPlaceholderText(
+        "Copy and paste job link here",
+      );
+      await user.type(urlInput, "https://example.com/job/123");
+      const autoFillBtn = screen.getByRole("button", { name: /auto-fill/i });
+      await user.click(autoFillBtn);
+
+      expect(global.fetch).not.toHaveBeenCalledWith(
+        "/api/ai/job/extract",
+        expect.anything(),
+      );
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "No AI model configured",
+        }),
+      );
+    });
+
+    it("should show error toast on API failure", async () => {
+      localStorage.setItem(
+        "aiSettings",
+        JSON.stringify({ provider: "ollama", model: "llama3.2" }),
+      );
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        json: async () => ({ error: "Could not extract enough text" }),
+      });
+
+      const urlInput = screen.getByPlaceholderText(
+        "Copy and paste job link here",
+      );
+      await user.type(urlInput, "https://example.com/job/123");
+      const autoFillBtn = screen.getByRole("button", { name: /auto-fill/i });
+      await user.click(autoFillBtn);
+
+      await waitFor(() => {
+        expect(toast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            variant: "destructive",
+            title: "Auto-fill failed",
+          }),
+        );
+      });
+    });
+
+    it("should show paste textarea after 422 auto-fill error", async () => {
+      localStorage.setItem(
+        "aiSettings",
+        JSON.stringify({ provider: "ollama", model: "llama3.2" }),
+      );
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        json: async () => ({
+          error: "Could not extract enough text from this page.",
+        }),
+      });
+
+      const urlInput = screen.getByPlaceholderText(
+        "Copy and paste job link here",
+      );
+      await user.type(urlInput, "https://example.com/job/123");
+      const autoFillBtn = screen.getByRole("button", { name: /auto-fill/i });
+      await user.click(autoFillBtn);
+
+      await waitFor(() => {
+        const pasteTextarea = screen.getByPlaceholderText(
+          /paste the job description/i,
+        );
+        expect(pasteTextarea).toBeInTheDocument();
+      });
+    });
+
+    it("should send pasted content to extract API", async () => {
+      localStorage.setItem(
+        "aiSettings",
+        JSON.stringify({ provider: "ollama", model: "llama3.2" }),
+      );
+
+      // Show paste input by clicking toggle
+      const toggleBtn = screen.getByText(/or paste job description/i);
+      await user.click(toggleBtn);
+
+      const pasteTextarea = screen.getByPlaceholderText(
+        /paste the job description/i,
+      );
+      const longText = "A".repeat(101); // >100 chars to enable button
+      await user.type(pasteTextarea, longText);
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          title: "Software Engineer",
+          company: "Acme Corp",
+          locations: ["Remote"],
+          description: "<p>Description</p>",
+        }),
+      });
+
+      const extractBtn = screen.getByRole("button", {
+        name: /extract from pasted text/i,
+      });
+      await user.click(extractBtn);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          "/api/ai/job/extract",
+          expect.objectContaining({
+            method: "POST",
+            body: expect.stringContaining("htmlContent"),
+          }),
+        );
       });
     });
   });
