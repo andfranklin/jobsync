@@ -36,6 +36,7 @@ jest.mock("@prisma/client", () => {
     },
     location: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -417,26 +418,47 @@ describe("jobActions", () => {
         createdBy: mockUser.id,
       };
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-
+      (prisma.location.findFirst as jest.Mock).mockResolvedValue(null);
       (prisma.location.create as jest.Mock).mockResolvedValue(mockLocation);
 
       const result = await createLocation(label);
 
+      expect(prisma.location.findFirst).toHaveBeenCalledWith({
+        where: { value: "new location", createdBy: mockUser.id },
+      });
       expect(prisma.location.create).toHaveBeenCalledTimes(1);
       expect(prisma.location.create).toHaveBeenCalledWith({
         data: mockLocation,
       });
       expect(result).toStrictEqual({
-        data: {
-          ...mockLocation,
-        },
+        data: mockLocation,
+        success: true,
+      });
+    });
+    it("should return existing location if found", async () => {
+      const existingLocation = {
+        id: "existing-id",
+        label: "New Location",
+        value: "new location",
+        createdBy: mockUser.id,
+      };
+      (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.location.findFirst as jest.Mock).mockResolvedValue(existingLocation);
+
+      const result = await createLocation("New Location");
+
+      expect(prisma.location.findFirst).toHaveBeenCalledWith({
+        where: { value: "new location", createdBy: mockUser.id },
+      });
+      expect(prisma.location.create).not.toHaveBeenCalled();
+      expect(result).toStrictEqual({
+        data: existingLocation,
         success: true,
       });
     });
     it("should handle unexpected errors", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-
-      (prisma.location.create as jest.Mock).mockRejectedValue(
+      (prisma.location.findFirst as jest.Mock).mockRejectedValue(
         new Error("Unexpected error")
       );
 

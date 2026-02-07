@@ -20,6 +20,7 @@ jest.mock("@prisma/client", () => {
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      upsert: jest.fn(),
     },
   };
   return { PrismaClient: jest.fn(() => mPrismaClient) };
@@ -192,7 +193,6 @@ describe("Company Actions", () => {
 
     it("should create a new company successfully", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.company.findUnique as jest.Mock).mockResolvedValue(null);
       const mockCompany = {
         id: "company-id",
         label: "New Company",
@@ -200,18 +200,16 @@ describe("Company Actions", () => {
         logoUrl: "http://example.com/logo.png",
         createdBy: mockUser.id,
       };
-      (prisma.company.create as jest.Mock).mockResolvedValue(mockCompany);
-      // Mock revalidatePath to prevent any errors during the test
+      (prisma.company.upsert as jest.Mock).mockResolvedValue(mockCompany);
       (revalidatePath as jest.Mock).mockResolvedValue(undefined);
 
       const result = await addCompany(validData);
 
       expect(result).toEqual({ success: true, data: mockCompany });
-      expect(prisma.company.findUnique).toHaveBeenCalledWith({
+      expect(prisma.company.upsert).toHaveBeenCalledWith({
         where: { value: "new company" },
-      });
-      expect(prisma.company.create).toHaveBeenCalledWith({
-        data: {
+        update: {},
+        create: {
           createdBy: mockUser.id,
           value: "new company",
           label: "New Company",
@@ -227,47 +225,48 @@ describe("Company Actions", () => {
       const result = await addCompany(validData);
 
       expect(result).toEqual({ success: false, message: "Not authenticated" });
-      expect(prisma.company.findUnique).not.toHaveBeenCalled();
-      expect(prisma.company.create).not.toHaveBeenCalled();
+      expect(prisma.company.upsert).not.toHaveBeenCalled();
     });
 
-    it("should return an error if the company already exists", async () => {
+    it("should return existing company on upsert match", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
       const mockExistingCompany = {
         id: "existing-company-id",
-        ...validData,
+        label: "New Company",
         value: "new company",
+        logoUrl: "http://example.com/logo.png",
         createdBy: mockUser.id,
       };
-      (prisma.company.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.company.upsert as jest.Mock).mockResolvedValue(
         mockExistingCompany,
       );
+      (revalidatePath as jest.Mock).mockResolvedValue(undefined);
 
       const result = await addCompany(validData);
 
-      expect(result).toEqual({
-        success: false,
-        message: "Company already exists!",
-      });
-      expect(prisma.company.findUnique).toHaveBeenCalledWith({
+      expect(result).toEqual({ success: true, data: mockExistingCompany });
+      expect(prisma.company.upsert).toHaveBeenCalledWith({
         where: { value: "new company" },
+        update: {},
+        create: {
+          createdBy: mockUser.id,
+          value: "new company",
+          label: "New Company",
+          logoUrl: "http://example.com/logo.png",
+        },
       });
-      expect(prisma.company.create).not.toHaveBeenCalled();
     });
 
     it("should handle unexpected errors", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.company.findUnique as jest.Mock).mockRejectedValue(
+      (prisma.company.upsert as jest.Mock).mockRejectedValue(
         new Error("Unexpected error"),
       );
 
       const result = await addCompany(validData);
 
       expect(result).toEqual({ success: false, message: "Unexpected error" });
-      expect(prisma.company.findUnique).toHaveBeenCalledWith({
-        where: { value: "new company" },
-      });
-      expect(prisma.company.create).not.toHaveBeenCalled();
+      expect(prisma.company.upsert).toHaveBeenCalled();
     });
 
     it("should return error if logo URL is invalid", async () => {
@@ -304,12 +303,11 @@ describe("Company Actions", () => {
         message: "Invalid logo URL. Only http and https protocols are allowed.",
       });
 
-      expect(prisma.company.create).not.toHaveBeenCalled();
+      expect(prisma.company.upsert).not.toHaveBeenCalled();
     });
 
     it("should allow empty logo URL", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.company.findUnique as jest.Mock).mockResolvedValue(null);
       const mockCompany = {
         id: "company-id",
         label: "New Company",
@@ -317,7 +315,7 @@ describe("Company Actions", () => {
         logoUrl: "",
         createdBy: mockUser.id,
       };
-      (prisma.company.create as jest.Mock).mockResolvedValue(mockCompany);
+      (prisma.company.upsert as jest.Mock).mockResolvedValue(mockCompany);
       (revalidatePath as jest.Mock).mockResolvedValue(undefined);
 
       const result = await addCompany({
@@ -326,12 +324,11 @@ describe("Company Actions", () => {
       });
 
       expect(result).toEqual({ success: true, data: mockCompany });
-      expect(prisma.company.create).toHaveBeenCalled();
+      expect(prisma.company.upsert).toHaveBeenCalled();
     });
 
     it("should allow https URLs", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.company.findUnique as jest.Mock).mockResolvedValue(null);
       const mockCompany = {
         id: "company-id",
         label: "New Company",
@@ -339,7 +336,7 @@ describe("Company Actions", () => {
         logoUrl: "https://example.com/logo.png",
         createdBy: mockUser.id,
       };
-      (prisma.company.create as jest.Mock).mockResolvedValue(mockCompany);
+      (prisma.company.upsert as jest.Mock).mockResolvedValue(mockCompany);
       (revalidatePath as jest.Mock).mockResolvedValue(undefined);
 
       const result = await addCompany({
@@ -348,7 +345,7 @@ describe("Company Actions", () => {
       });
 
       expect(result).toEqual({ success: true, data: mockCompany });
-      expect(prisma.company.create).toHaveBeenCalled();
+      expect(prisma.company.upsert).toHaveBeenCalled();
     });
   });
 
