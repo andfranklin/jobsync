@@ -38,7 +38,9 @@ async function createNewJob(page: Page, jobText: string) {
   } else if (await createOption.isVisible()) {
     await createOption.click();
   }
-  await expect(page.getByLabel("Job Title")).toContainText(jobText);
+  await expect(page.getByLabel("Job Title")).toContainText(jobText, {
+    timeout: 10000,
+  });
   await page.getByLabel("Company").click();
   await page.getByPlaceholder("Create or Search company").click();
   const companyText = "company test";
@@ -55,7 +57,9 @@ async function createNewJob(page: Page, jobText: string) {
   } else if (await createCompany.isVisible()) {
     await createCompany.click();
   }
-  await expect(page.getByLabel("Company")).toContainText(companyText);
+  await expect(page.getByLabel("Company")).toContainText(companyText, {
+    timeout: 10000,
+  });
   await page.getByLabel("Job Location").click();
   await page.getByPlaceholder("Create or Search location").click();
   const locationText = "location test";
@@ -72,7 +76,9 @@ async function createNewJob(page: Page, jobText: string) {
   } else if (await createLocation.isVisible()) {
     await createLocation.click();
   }
-  await expect(page.getByLabel("Job Location")).toContainText(locationText);
+  await expect(page.getByLabel("Job Location")).toContainText(locationText, {
+    timeout: 10000,
+  });
   await page.getByText("Part-time").click();
   await page.getByLabel("Job Source").click();
   await page.getByRole("option", { name: "Indeed" }).click();

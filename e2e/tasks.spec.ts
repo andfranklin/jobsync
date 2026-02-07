@@ -279,8 +279,11 @@ test.describe("Tasks Management", () => {
       );
       await expect(page).toHaveURL(/\/dashboard\/activities/);
 
-      // Stop the running activity
+      // Stop the running activity and wait for it to complete
       await page.getByRole("button", { name: "Stop" }).click({ force: true });
+      await expect(
+        page.getByRole("button", { name: "Stop" })
+      ).not.toBeVisible({ timeout: 10000 });
 
       // Go back and delete the task
       await navigateToTasks(page);
@@ -316,6 +319,9 @@ test.describe("Tasks Management", () => {
 
       // Stop the activity so we can test the linked state
       await page.getByRole("button", { name: "Stop" }).click({ force: true });
+      await expect(
+        page.getByRole("button", { name: "Stop" })
+      ).not.toBeVisible({ timeout: 10000 });
 
       // Go back to tasks
       await navigateToTasks(page);
@@ -343,11 +349,18 @@ test.describe("Tasks Management", () => {
       await page.goto("/dashboard/activities");
       await page.waitForLoadState("networkidle");
       await page.getByTestId("add-activity-btn").waitFor({ state: "visible" });
+      // Stop any running activity before trying to delete from table
+      const stopButton = page.getByRole("button", { name: "Stop" });
+      if (await stopButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await stopButton.click({ force: true });
+        await expect(stopButton).not.toBeVisible({ timeout: 10000 });
+      }
       const activityRow = page
         .getByRole("row", {
           name: new RegExp(linkedActivityTaskTitle, "i"),
         })
         .first();
+      await activityRow.waitFor({ state: "visible", timeout: 10000 });
       await activityRow
         .getByRole("button", { name: "Toggle menu" })
         .click({ force: true });

@@ -21,11 +21,11 @@ async function MyJobs() {
   return (
     <div className="col-span-3">
       <JobsContainer
-        companies={companies}
-        titles={titles}
-        locations={locations}
-        sources={sources}
-        statuses={statuses}
+        companies={Array.isArray(companies) ? companies : []}
+        titles={Array.isArray(titles) ? titles : []}
+        locations={Array.isArray(locations) ? locations : []}
+        sources={Array.isArray(sources) ? sources : []}
+        statuses={Array.isArray(statuses) ? statuses : []}
       />
     </div>
   );

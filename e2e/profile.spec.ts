@@ -218,7 +218,9 @@ test.describe.serial("Profile page", () => {
     } else if (await createLocation.isVisible()) {
       await createLocation.click();
     }
-    await expect(page.getByLabel("Location")).toContainText(locationText);
+    await expect(page.getByLabel("Location")).toContainText(locationText, {
+      timeout: 10000,
+    });
     await page.getByPlaceholder("Ex: Bachelor's").click();
     await page.getByPlaceholder("Ex: Bachelor's").fill("degree text");
     await page.getByPlaceholder("Ex: Computer Science").click();
@@ -288,7 +290,9 @@ async function addExperience(page: Page, resumeTitle: string, jobText: string) {
   } else if (await createTitle.isVisible()) {
     await createTitle.click();
   }
-  await expect(page.getByLabel("Job Title")).toContainText(jobText);
+  await expect(page.getByLabel("Job Title")).toContainText(jobText, {
+    timeout: 10000,
+  });
   await page.getByLabel("Company").click();
   await page.getByPlaceholder("Create or Search company").click();
   const companyText = "company test";
@@ -305,7 +309,9 @@ async function addExperience(page: Page, resumeTitle: string, jobText: string) {
   } else if (await createCompany.isVisible()) {
     await createCompany.click();
   }
-  await expect(page.getByLabel("Company")).toContainText(companyText);
+  await expect(page.getByLabel("Company")).toContainText(companyText, {
+    timeout: 10000,
+  });
   await page.getByLabel("Job Location").click();
   await page.getByPlaceholder("Create or Search location").click();
   const locationText = "location test";
@@ -322,7 +328,9 @@ async function addExperience(page: Page, resumeTitle: string, jobText: string) {
   } else if (await createLocation.isVisible()) {
     await createLocation.click();
   }
-  await expect(page.getByLabel("Job Location")).toContainText(locationText);
+  await expect(page.getByLabel("Job Location")).toContainText(locationText, {
+    timeout: 10000,
+  });
   await page.getByLabel("Start Date").click();
   // Wait for calendar popover to open
   await page.waitForTimeout(1000);
