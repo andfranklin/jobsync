@@ -93,6 +93,19 @@ You can use default username (admin@example) and password (password123) or chang
 * **Please make sure you have <a href="https://www.docker.com">docker</a> installed and running**
 * Please make sure you are in you project directory in your terminal
 
+##### macOS (Homebrew) Setup
+
+If you installed Docker via Homebrew (rather than Docker Desktop), you will need to install the Compose plugin and a container runtime separately:
+
+```sh
+brew install docker-compose colima
+mkdir -p ~/.docker/cli-plugins
+ln -sfn $(brew --prefix)/opt/docker-compose/bin/docker-compose ~/.docker/cli-plugins/docker-compose
+colima start
+```
+
+##### Run the app
+
 ```sh
 docker compose up
 ```
