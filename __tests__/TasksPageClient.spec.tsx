@@ -4,36 +4,6 @@ import { screen, render, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { getTasksList } from "@/actions/task.actions";
 
-jest.mock("next-auth", () => {
-  const mockAuth = jest.fn();
-  const mockSignIn = jest.fn();
-  const mockSignOut = jest.fn();
-  const mockHandlers = { GET: jest.fn(), POST: jest.fn() };
-
-  return {
-    __esModule: true,
-    default: jest.fn(() => ({
-      auth: mockAuth,
-      handlers: mockHandlers,
-      signIn: mockSignIn,
-      signOut: mockSignOut,
-    })),
-    auth: mockAuth,
-    signIn: mockSignIn,
-    signOut: mockSignOut,
-    handlers: mockHandlers,
-  };
-});
-
-jest.mock("next-auth/providers/credentials", () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    id: "credentials",
-    name: "Credentials",
-    type: "credentials",
-  })),
-}));
-
 jest.mock("@/actions/task.actions", () => ({
   getTasksList: jest.fn(),
 }));

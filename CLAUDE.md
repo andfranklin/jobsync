@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JobSync is a self-hosted job search management app built with Next.js 15 (App Router), React 19, Prisma (SQLite), and NextAuth v5. It tracks job applications, tasks, activities, resumes, and includes AI-powered resume review/job matching via Ollama, OpenAI, or DeepSeek.
+JobSync is a self-hosted, single-user job search management app built with Next.js 15 (App Router), React 19, and Prisma (SQLite). It tracks job applications, tasks, activities, resumes, and includes AI-powered resume review/job matching via Ollama, OpenAI, or DeepSeek. There is no authentication — the app serves a single local user.
 
 ## Running the App
 
@@ -62,7 +62,7 @@ npx jest __tests__/job.actions.spec.ts
 
 **Run a single E2E test:**
 ```bash
-npx playwright test e2e/signin.spec.ts
+npx playwright test e2e/tasks.spec.ts
 ```
 
 **Prisma commands:**
@@ -75,10 +75,8 @@ npx prisma migrate dev --name X  # Create and apply migration
 
 ### App Structure (Next.js App Router)
 
-- `src/app/(auth)/` - Auth pages (signin)
-- `src/app/dashboard/` - Protected routes: myjobs, tasks, activities, profile, settings, admin, developer
-- `src/app/api/` - API routes for auth, AI endpoints, jobs export, profile/resume
-- `src/middleware.ts` - Route protection; guards `/dashboard` and `/dashboard/*`
+- `src/app/dashboard/` - Main routes: myjobs, tasks, activities, profile, settings, admin, developer
+- `src/app/api/` - API routes for AI endpoints, jobs export, profile/resume
 
 ### Data Layer
 
@@ -97,14 +95,9 @@ npx prisma migrate dev --name X  # Create and apply migration
 
 Zod schemas in `src/models/*.schema.ts` handle form and API validation. Models/interfaces live in `src/models/*.model.ts`.
 
-### Auth
+### User
 
-NextAuth v5 (beta) with Credentials provider. Config split across:
-- `src/auth.ts` - Provider setup with bcrypt password comparison
-- `src/auth.config.ts` - Callbacks for JWT/session
-- `src/middleware.ts` - Route matcher
-
-`getCurrentUser()` helper in `src/utils/user.utils.ts` retrieves the authenticated user.
+Single-user app with no authentication. `getCurrentUser()` in `src/utils/user.utils.ts` returns the first (and only) user from the database via `prisma.user.findFirst()`.
 
 ### AI Integration
 
@@ -119,10 +112,10 @@ NextAuth v5 (beta) with Credentials provider. Config split across:
 
 ## Testing
 
-- **Unit tests** (`__tests__/*.spec.{ts,tsx}`) - Jest + React Testing Library. All dependencies (Prisma, NextAuth, next/navigation) are fully mocked. These tests are safe to run at any time and do not touch any database. Mocks are in `__mocks__/`. The jest config (`jest.config.ts`) excludes the `e2e/` directory.
+- **Unit tests** (`__tests__/*.spec.{ts,tsx}`) - Jest + React Testing Library. All dependencies (Prisma, next/navigation) are fully mocked. These tests are safe to run at any time and do not touch any database. Mocks are in `__mocks__/`. The jest config (`jest.config.ts`) excludes the `e2e/` directory.
 
-- **E2E tests** (`e2e/*.spec.ts`) - Playwright. Configured to auto-start a dev server on port 3001 (separate from Docker on 3000). Tests run against Chromium, Firefox, and WebKit.
-  - E2E tests use a **separate test database** at `prisma/test-e2e.db` (not `jobsyncdb/`). A `globalSetup` script (`e2e/global-setup.ts`) creates a fresh database before each test run.
+- **E2E tests** (`e2e/*.spec.ts`) - Playwright. Configured to auto-start a dev server on port 3001 (separate from Docker on 3000). Tests run against Chromium only.
+  - E2E tests use a **separate test database** at `prisma/test-e2e.db` (not `jobsyncdb/`). The database is created on first run via `playwright.config.ts` and data is cleared/reseeded via `e2e/global-setup.ts` on each run.
   - E2E tests require `npx prisma generate` to have been run at least once.
 
 ## Environment Setup
@@ -131,8 +124,6 @@ Copy `.env.example` to `.env`. Docker Compose reads variables from this file.
 
 Key variables:
 - `DATABASE_URL` - SQLite path. Docker overrides this to `file:/data/dev.db`. For local (non-Docker) development, set to `file:./dev.db`.
-- `USER_EMAIL` / `USER_PASSWORD` - Default user credentials for seeding (default: admin@example.com / password123)
+- `USER_EMAIL` - Email for the single local user (default: admin@example.com)
 - `TZ` - Timezone (important for activity time tracking)
-- `AUTH_SECRET` - Generate with `openssl rand -base64 33`
-- `NEXTAUTH_URL` - App URL (http://localhost:3000)
 - `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` / `OLLAMA_BASE_URL` - AI provider config (all optional)

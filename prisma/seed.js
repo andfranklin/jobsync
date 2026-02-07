@@ -18,7 +18,6 @@ async function seedUser() {
         data: {
           email,
           name: "Admin",
-          password: "unused",
         },
       });
       console.log("Seeded new user: ", { email });
