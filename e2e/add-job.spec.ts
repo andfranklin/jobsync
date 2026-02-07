@@ -83,6 +83,9 @@ async function createNewJob(page: Page, jobText: string) {
     .locator("div")
     .fill("test description");
   await page.getByTestId("save-job-btn").click();
+  await expect(page.getByTestId("add-job-dialog-title")).not.toBeVisible({
+    timeout: 10000,
+  });
 }
 
 async function deleteJob(page: Page, jobText: string) {
@@ -110,7 +113,7 @@ test.describe.serial("Add New Job", () => {
     await createNewJob(page, jobText);
     await expect(
       page.getByRole("row", { name: jobText }).first()
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10000 });
     await deleteJob(page, jobText);
   });
 

@@ -49,7 +49,10 @@ async function createTask(
     } else if (await createOption.isVisible()) {
       await createOption.click({ force: true });
     }
-    await page.waitForTimeout(300);
+    // Wait for the ComboBox to show the selected value (server action complete)
+    await expect(
+      page.getByRole("combobox").filter({ hasText: options.activityType })
+    ).toBeVisible({ timeout: 10000 });
   }
 
   const saveBtn = page.getByTestId("save-task-btn");
