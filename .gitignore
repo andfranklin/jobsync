@@ -40,6 +40,8 @@ next-env.d.ts
 # prisma sqlite database
 dev.db
 dev.db-journal
+test-e2e.db
+test-e2e.db-journal
 /test-results/
 /playwright-report/
 /blob-report/

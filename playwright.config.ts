@@ -1,11 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// import dotenv from 'dotenv';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+// Use a separate test database to avoid modifying production data
+const testDbPath = path.resolve(__dirname, "prisma", "test-e2e.db");
+process.env.DATABASE_URL = `file:${testDbPath}`;
+process.env.USER_EMAIL = "admin@example.com";
+process.env.USER_PASSWORD = "password123";
+process.env.NEXTAUTH_URL = "http://localhost:3001";
+process.env.AUTH_SECRET =
+  process.env.AUTH_SECRET || "test-secret-for-e2e-only";
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -22,10 +25,12 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
+  /* Create a fresh test database before running tests */
+  globalSetup: "./e2e/global-setup.ts",
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3001",
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
@@ -47,32 +52,12 @@ export default defineConfig({
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
     },
-
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
   ],
 
-  /* Run your local dev server before starting the tests */
+  /* Run a separate dev server on port 3001 to avoid conflicting with Docker on 3000 */
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    command: "npm run dev -- -p 3001",
+    url: "http://localhost:3001",
     reuseExistingServer: true,
     timeout: 120 * 1000,
   },

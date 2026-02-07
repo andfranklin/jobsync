@@ -6,16 +6,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 JobSync is a self-hosted job search management app built with Next.js 15 (App Router), React 19, Prisma (SQLite), and NextAuth v5. It tracks job applications, tasks, activities, resumes, and includes AI-powered resume review/job matching via Ollama, OpenAI, or DeepSeek.
 
-## Commands
+## Running the App
+
+The primary way to run JobSync is via Docker. Running with `npm run dev` directly requires manual setup (see below).
+
+### Docker (recommended)
 
 ```bash
-npm run dev          # Dev server on port 3000
-npm run build        # Production build
+docker compose up          # Build and start the app on port 3000
+docker compose up --build  # Rebuild after code changes
+docker compose down        # Stop the app
+```
+
+Docker automatically handles database migrations, seeding, and environment configuration. The SQLite database is persisted at `./jobsyncdb/data/dev.db` via a volume mount.
+
+### Local Development (without Docker)
+
+Running outside Docker requires these prerequisites:
+
+1. Copy `.env.example` to `.env` and set `DATABASE_URL=file:./dev.db`
+2. `npm install`
+3. `npx prisma generate`
+4. `npx prisma migrate dev` to create the database and apply migrations
+5. `npm run seed` to seed initial data
+
+Then start the dev server:
+
+```bash
+npm run dev  # Dev server on port 3000 (requires prerequisites above)
+```
+
+## Commands
+
+### Safe to run without Docker or database
+
+```bash
 npm run lint         # ESLint
-npm test             # Jest unit tests
+npm test             # Jest unit tests (fully mocked, no database needed)
 npm run test:watch   # Jest watch mode
-npm run test:e2e     # Playwright E2E tests (needs dev server running or auto-starts it)
+```
+
+### Require local setup or running Docker container
+
+```bash
+npm run dev          # Dev server (requires local prerequisites, see above)
+npm run build        # Production build (requires npx prisma generate first)
 npm run seed         # Seed database with initial data
+npm run test:e2e     # Playwright E2E tests (see Testing section warning)
 ```
 
 **Run a single unit test:**
@@ -82,14 +119,19 @@ NextAuth v5 (beta) with Credentials provider. Config split across:
 
 ## Testing
 
-- **Unit tests** (`__tests__/*.spec.{ts,tsx}`) - Jest + React Testing Library. Mocks for NextAuth and next/navigation are in `__mocks__/`. The jest config (`jest.config.ts`) excludes the `e2e/` directory.
-- **E2E tests** (`e2e/*.spec.ts`) - Playwright. Configured to auto-start dev server. Tests run against Chromium, Firefox, and WebKit.
+- **Unit tests** (`__tests__/*.spec.{ts,tsx}`) - Jest + React Testing Library. All dependencies (Prisma, NextAuth, next/navigation) are fully mocked. These tests are safe to run at any time and do not touch any database. Mocks are in `__mocks__/`. The jest config (`jest.config.ts`) excludes the `e2e/` directory.
+
+- **E2E tests** (`e2e/*.spec.ts`) - Playwright. Configured to auto-start a dev server on port 3001 (separate from Docker on 3000). Tests run against Chromium, Firefox, and WebKit.
+  - E2E tests use a **separate test database** at `prisma/test-e2e.db` (not `jobsyncdb/`). A `globalSetup` script (`e2e/global-setup.ts`) creates a fresh database before each test run.
+  - E2E tests require `npx prisma generate` to have been run at least once.
 
 ## Environment Setup
 
-Copy `.env.example` to `.env`. Key variables:
-- `DATABASE_URL` - SQLite path (default: `file:./dev.db`)
-- `USER_EMAIL` / `USER_PASSWORD` - Default user credentials for seeding
+Copy `.env.example` to `.env`. Docker Compose reads variables from this file.
+
+Key variables:
+- `DATABASE_URL` - SQLite path. Docker overrides this to `file:/data/dev.db`. For local (non-Docker) development, set to `file:./dev.db`.
+- `USER_EMAIL` / `USER_PASSWORD` - Default user credentials for seeding (default: admin@example.com / password123)
 - `TZ` - Timezone (important for activity time tracking)
 - `AUTH_SECRET` - Generate with `openssl rand -base64 33`
 - `NEXTAUTH_URL` - App URL (http://localhost:3000)
