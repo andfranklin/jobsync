@@ -43,7 +43,14 @@ export const AddJobFormSchema = z.object({
    */
   //
   dateApplied: z.date().optional(),
-  salaryRange: z.string(),
+  salaryMin: z.preprocess(
+    (val) => (val === "" || val === undefined ? undefined : Number(val)),
+    z.number().int().min(50000).optional(),
+  ),
+  salaryMax: z.preprocess(
+    (val) => (val === "" || val === undefined ? undefined : Number(val)),
+    z.number().int().min(50000).optional(),
+  ),
   jobDescription: z
     .string({
       error: "Job description is required.",
@@ -54,4 +61,15 @@ export const AddJobFormSchema = z.object({
   jobUrl: z.string().optional(),
   applied: z.boolean().default(false),
   resume: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.salaryMin != null && data.salaryMax != null) {
+      return data.salaryMin <= data.salaryMax;
+    }
+    return true;
+  },
+  {
+    message: "Minimum salary must not exceed maximum salary.",
+    path: ["salaryMax"],
+  },
+);

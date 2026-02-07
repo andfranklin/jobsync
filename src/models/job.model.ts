@@ -11,7 +11,8 @@ export interface JobForm {
   status: string;
   dueDate: Date;
   dateApplied?: Date;
-  salaryRange: string;
+  salaryMin?: number;
+  salaryMax?: number;
   jobDescription: string;
   jobUrl?: string;
   applied: boolean;
@@ -29,7 +30,8 @@ export interface JobResponse {
   createdAt: Date;
   appliedDate: Date;
   dueDate: Date;
-  salaryRange: string;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
   description: string;
   jobUrl: string;
   applied: boolean;

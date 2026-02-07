@@ -37,7 +37,15 @@ import {
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import SelectFormCtrl from "../Select";
 import { DatePicker } from "../DatePicker";
-import { SALARY_RANGES } from "@/lib/data/salaryRangeData";
+import { SALARY_VALUES } from "@/lib/data/salaryRangeData";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import TiptapEditor from "../TiptapEditor";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
@@ -77,7 +85,6 @@ export function AddJob({
       type: Object.keys(JOB_TYPES)[0],
       dueDate: addDays(new Date(), 3),
       status: jobStatuses[0].id,
-      salaryRange: "1",
       location: [],
     },
   });
@@ -85,6 +92,18 @@ export function AddJob({
   const { setValue, reset, watch, resetField } = form;
 
   const appliedValue = watch("applied");
+  const salaryMinValue = watch("salaryMin");
+
+  useEffect(() => {
+    const currentMax = form.getValues("salaryMax");
+    if (
+      typeof salaryMinValue === "number" &&
+      typeof currentMax === "number" &&
+      currentMax < salaryMinValue
+    ) {
+      setValue("salaryMax", undefined);
+    }
+  }, [salaryMinValue, setValue, form]);
 
   const loadResumes = useCallback(async () => {
     try {
@@ -108,7 +127,8 @@ export function AddJob({
           source: editJob.JobSource.id,
           status: editJob.Status.id,
           dueDate: editJob.dueDate,
-          salaryRange: editJob.salaryRange,
+          salaryMin: editJob.salaryMin ?? undefined,
+          salaryMax: editJob.salaryMax ?? undefined,
           jobDescription: editJob.description,
           applied: editJob.applied,
           jobUrl: editJob.jobUrl ?? undefined,
@@ -426,23 +446,89 @@ export function AddJob({
 
                 {/* Salary Range */}
                 <div>
-                  <FormField
-                    control={form.control}
-                    name="salaryRange"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Salary Range</FormLabel>
-                        <FormControl>
-                          <SelectFormCtrl
-                            label="Salary Range"
-                            options={SALARY_RANGES}
-                            field={field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <FormLabel>Salary Range</FormLabel>
+                  <div className="flex gap-2 mt-2">
+                    <FormField
+                      control={form.control}
+                      name="salaryMin"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col flex-1">
+                          <Select
+                            onValueChange={(val) =>
+                              field.onChange(val === "none" ? "" : Number(val))
+                            }
+                            value={field.value?.toString() ?? "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger aria-label="Salary Min">
+                                <SelectValue placeholder="No minimum" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectItem value="none">No minimum</SelectItem>
+                                {SALARY_VALUES.map((opt) => (
+                                  <SelectItem
+                                    key={opt.value}
+                                    value={opt.value.toString()}
+                                  >
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <span className="self-center text-muted-foreground">—</span>
+                    <FormField
+                      control={form.control}
+                      name="salaryMax"
+                      render={({ field }) => {
+                        const minVal = form.watch("salaryMin");
+                        const filteredOptions =
+                          typeof minVal === "number"
+                            ? SALARY_VALUES.filter((opt) => opt.value >= minVal)
+                            : SALARY_VALUES;
+                        return (
+                          <FormItem className="flex flex-col flex-1">
+                            <Select
+                              onValueChange={(val) =>
+                                field.onChange(
+                                  val === "none" ? "" : Number(val),
+                                )
+                              }
+                              value={field.value?.toString() ?? "none"}
+                            >
+                              <FormControl>
+                                <SelectTrigger aria-label="Salary Max">
+                                  <SelectValue placeholder="No maximum" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectItem value="none">
+                                    No maximum
+                                  </SelectItem>
+                                  {filteredOptions.map((opt) => (
+                                    <SelectItem
+                                      key={opt.value}
+                                      value={opt.value.toString()}
+                                    >
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* Resume */}

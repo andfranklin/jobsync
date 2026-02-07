@@ -35,7 +35,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-19"),
       description:
         "<p>We are looking for a <strong>Full Stack Developer</strong> to join our team at Amazon. You will be responsible for developing and maintaining our web applications. Strong experience in both front-end and back-end technologies is required.</p>",
-      salaryRange: "$100,000 - $120,000",
+      salaryMin: 100000,
+      salaryMax: 120000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -71,7 +72,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-20"),
       description:
         "<p>Join our dynamic team at Google as a <strong>Full Stack Developer</strong>. You will be involved in the full software development lifecycle, from conception to deployment. Proficiency in JavaScript, Python, and cloud technologies is required.</p>",
-      salaryRange: "$110,000 - $130,000",
+      salaryMin: 110000,
+      salaryMax: 130000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -107,7 +109,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-19"),
       description:
         "<p>Facebook is seeking a talented <strong>Full Stack Developer</strong> to work on our cutting-edge social media platforms. Experience with React and Node.js is highly desirable. Work remotely with a team of top developers.</p>",
-      salaryRange: "$105,000 - $125,000",
+      salaryMin: 100000,
+      salaryMax: 130000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -143,7 +146,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-18"),
       description:
         "<p>Netflix is hiring a <strong>Full Stack Developer</strong> to enhance our streaming platform. You will work on both front-end and back-end features, ensuring a seamless user experience. Familiarity with cloud infrastructure is a plus.</p>",
-      salaryRange: "$115,000 - $135,000",
+      salaryMin: 110000,
+      salaryMax: 140000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -179,7 +183,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-18"),
       description:
         "<p>We are looking for a creative <strong>Frontend Developer</strong> at Apple to build intuitive interfaces for our products. Strong knowledge of HTML, CSS, and JavaScript is essential. Experience with design tools is a plus.</p>",
-      salaryRange: "$95,000 - $115,000",
+      salaryMin: 90000,
+      salaryMax: 120000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -215,7 +220,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-19"),
       description:
         "<p>Amazon is seeking a skilled <strong>DevOps Engineer</strong> to manage our deployment pipelines and infrastructure. Experience with AWS, Docker, and CI/CD tools is required. Join a fast-paced environment and help us scale.</p>",
-      salaryRange: "$120,000 - $140,000",
+      salaryMin: 120000,
+      salaryMax: 140000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -251,7 +257,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-19"),
       description:
         "<p>We are looking for an experienced <strong>Software Architect</strong> at Microsoft to design and oversee the development of complex software systems. Strong leadership and coding skills are essential. Work with the latest technologies and shape the future of our products.</p>",
-      salaryRange: "$130,000 - $150,000",
+      salaryMin: 130000,
+      salaryMax: 150000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -287,7 +294,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-19"),
       description:
         "<p>Netflix is seeking a talented <strong>Frontend Developer</strong> to join our team in Los Angeles. You will work on building responsive and interactive web applications. Experience with React and performance optimization is desired.</p>",
-      salaryRange: "$105,000 - $125,000",
+      salaryMin: 100000,
+      salaryMax: 130000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },
@@ -323,7 +331,8 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
       appliedDate: new Date("2024-06-19"),
       description:
         "<p>Apple is hiring a <strong>Backend Developer</strong> to build and maintain our server-side applications. Expertise in server-side programming languages and database management is required. Work remotely and collaborate with our global team.</p>",
-      salaryRange: "$115,000 - $135,000",
+      salaryMin: 110000,
+      salaryMax: 140000,
       dueDate: new Date("2024-06-22"),
       createdAt: new Date("2024-06-17"),
     },

@@ -149,12 +149,13 @@ describe("AddJob Component", () => {
     expect(options.length).toBeGreaterThan(0);
     expect(options[0].textContent).toBe("Indeed");
   });
-  it("should load and show the salary range select list", async () => {
-    const salaryRangeSelect = screen.getByLabelText("Salary Range");
-    await user.click(salaryRangeSelect);
+  it("should load and show the salary min and max selects", async () => {
+    const salaryMinSelect = screen.getByLabelText("Salary Min");
+    await user.click(salaryMinSelect);
     const options = screen.getAllByRole("option");
     expect(options.length).toBeGreaterThan(0);
-    expect(options[0].textContent).toBe("0 - 10,000");
+    expect(options[0].textContent).toBe("No minimum");
+    expect(options[1].textContent).toBe("$50,000");
   });
   it("should load and show the status select list", async () => {
     const statusSelect = screen.getByLabelText("Status");
@@ -222,7 +223,8 @@ describe("AddJob Component", () => {
         status: "d7ba200a-6dc1-4ea8-acff-29ebb0d4676a",
         dueDate: expect.any(Date),
         dateApplied: undefined,
-        salaryRange: "1",
+        salaryMin: undefined,
+        salaryMax: undefined,
         jobDescription: "<p>New Job Description</p>",
         jobUrl: undefined,
         applied: false,

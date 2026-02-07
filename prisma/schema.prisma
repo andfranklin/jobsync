@@ -234,7 +234,8 @@ model Job {
   companyId   String
   JobSource   JobSource?  @relation(fields: [jobSourceId], references: [id])
   jobSourceId String?
-  salaryRange String?
+  salaryMin   Int?
+  salaryMax   Int?
   Locations   Location[]
   Interview   Interview[]
   Resume      Resume?     @relation(fields: [resumeId], references: [id])
