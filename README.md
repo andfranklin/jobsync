@@ -35,96 +35,48 @@ Job searching can be overwhelming, with numerous applications to track and deadl
 
 
 ## Free to Use and Self-Hosted
-JobSync Assistant is completely free to use and open source. It provides a powerful job search management tool at no cost and ensures that everyone has access to the resources they need. Additionally, JobSeeker Assistant is designed to be self-hosted, giving you full control over your data. By using Docker, you can easily set up and run JobSync Assistant on your own server, ensuring a secure and personalized experience.
+JobSync Assistant is completely free to use and open source. It provides a powerful job search management tool at no cost and ensures that everyone has access to the resources they need. Additionally, JobSeeker Assistant is designed to be self-hosted, giving you full control over your data and ensuring a secure and personalized experience.
 
 
 ## Installation
 
-### Using Docker
-
 #### Step 1 - Clone repo
-* **Alternativey you can also download the source code using download link**
 
 ```sh
 git clone https://github.com/Gsync/jobsync.git
+cd jobsync
 ```
 
-#### Step 2 - Change environment variables
-* ** You must create a .env file before proceeding. Refer to .env.example and create or change to .env with your environment variables**
-  
-#### 2.1 Generate auth secret (Optional) 
+#### Step 2 - Set up environment variables
 
-These methods will generate a random string that you can use as your AUTH_SECRET. Make sure to set this in your environment variables:
-
-For example, add it to your .env local file:
+Copy `.env.example` to `.env` and update any values as needed:
 
 ```sh
-AUTH_SECRET="your_generated_secret"
+cp .env.example .env
 ```
 
-**Important**
-If you are running it on a remote server/homelab, you must update timezone otherwise activities times may shift
+**Important:** If you are running it on a remote server/homelab, you must update timezone otherwise activities times may shift:
 
-```sh 
+```sh
 TZ=America/Edmonton
 ```
 
-##### For npm
+#### Step 3 - Install dependencies and set up database
 
 ```sh
-    npm exec auth secret
-```
-OR
-```sh
-    npx auth secret
-```
-
-##### Using the openssl command available on Linux and Mac OS X:
-
-```sh
-    openssl rand -base64 33
+npm install
+npx prisma generate
+npx prisma migrate dev
+npm run seed
 ```
 
-#### 2.2 Change username and password (Optional) 
-
-You can use default username (admin@example) and password (password123) or change it in you .env file
-
-#### Step 3 - Build docker image and run container
-* **Please make sure you have <a href="https://www.docker.com">docker</a> installed and running**
-* Please make sure you are in you project directory in your terminal
-
-##### macOS (Homebrew) Setup
-
-If you installed Docker via Homebrew (rather than Docker Desktop), you will need to install the Compose plugin and a container runtime separately:
+#### Step 4 - Start the app
 
 ```sh
-brew install docker-compose colima
-mkdir -p ~/.docker/cli-plugins
-ln -sfn $(brew --prefix)/opt/docker-compose/bin/docker-compose ~/.docker/cli-plugins/docker-compose
-colima start
+npm run dev
 ```
 
-##### Run the app
-
-```sh
-docker compose up
-```
-
-***For Update (Optional)***
-Try running deployment script (deploy.sh) - with clone
-
-```sh
- ./deploy.sh
-```
-OR - without clone
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/Gsync/jobsync/main/deploy.sh | sudo bash -s
-```
-
-#### Step 4 - Access the app
-* **Open [http://localhost:3000](http://localhost:3000) with your browser to access the app.**
-* If you encounter port conflicts, please change it in the docker file
+Open [http://localhost:3000](http://localhost:3000) with your browser to access the app.
 
 ### Credits
 
@@ -159,7 +111,4 @@ You must add your valid API key in the env file, also please make sure deepseek 
 DEEPSEEK_API_KEY=your-deepseek-api-key-here
 ```
 
-### Note
-
-- If you are updating from an old version and already logged in, please try logging out and login again.
 

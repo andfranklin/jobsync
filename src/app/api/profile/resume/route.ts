@@ -12,7 +12,7 @@ import { getTimestampedFileName } from "@/lib/utils";
 
 export const POST = async (req: NextRequest) => {
   const user = await getCurrentUser();
-  const dataPath = process.env.NODE_ENV !== "production" ? "data" : "/data";
+  const dataPath = "data";
   let filePath;
 
   try {

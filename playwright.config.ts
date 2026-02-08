@@ -56,7 +56,7 @@ export default defineConfig({
     },
   ],
 
-  /* Run a separate dev server on port 3001 to avoid conflicting with Docker on 3000 */
+  /* Run a separate dev server on port 3001 to avoid conflicting with dev server on 3000 */
   webServer: {
     command: "npm run dev -- -p 3001",
     url: "http://localhost:3001",

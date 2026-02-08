@@ -8,37 +8,23 @@ JobSync is a self-hosted, single-user job search management app built with Next.
 
 ## Running the App
 
-The primary way to run JobSync is via Docker. Running with `npm run dev` directly requires manual setup (see below).
+### First-time Setup
 
-### Docker (recommended)
-
-```bash
-docker compose up          # Build and start the app on port 3000
-docker compose up --build  # Rebuild after code changes
-docker compose down        # Stop the app
-```
-
-Docker automatically handles database migrations, seeding, and environment configuration. The SQLite database is persisted at `./jobsyncdb/data/dev.db` via a volume mount.
-
-### Local Development (without Docker)
-
-Running outside Docker requires these prerequisites:
-
-1. Copy `.env.example` to `.env` and set `DATABASE_URL=file:./dev.db`
+1. Copy `.env.example` to `.env`
 2. `npm install`
 3. `npx prisma generate`
 4. `npx prisma migrate dev` to create the database and apply migrations
 5. `npm run seed` to seed initial data
 
-Then start the dev server:
+### Start the Dev Server
 
 ```bash
-npm run dev  # Dev server on port 3000 (requires prerequisites above)
+npm run dev  # Dev server on port 3000 (requires setup above)
 ```
 
 ## Commands
 
-### Safe to run without Docker or database
+### Safe to run without database
 
 ```bash
 npm run lint         # ESLint
@@ -46,10 +32,10 @@ npm test             # Jest unit tests (fully mocked, no database needed)
 npm run test:watch   # Jest watch mode
 ```
 
-### Require local setup or running Docker container
+### Require setup
 
 ```bash
-npm run dev          # Dev server (requires local prerequisites, see above)
+npm run dev          # Dev server (requires setup, see above)
 npm run build        # Production build (requires npx prisma generate first)
 npm run seed         # Seed database with initial data
 npm run test:e2e     # Playwright E2E tests (see Testing section warning)
@@ -114,16 +100,16 @@ Single-user app with no authentication. `getCurrentUser()` in `src/utils/user.ut
 
 - **Unit tests** (`__tests__/*.spec.{ts,tsx}`) - Jest + React Testing Library. All dependencies (Prisma, next/navigation) are fully mocked. These tests are safe to run at any time and do not touch any database. Mocks are in `__mocks__/`. The jest config (`jest.config.ts`) excludes the `e2e/` directory.
 
-- **E2E tests** (`e2e/*.spec.ts`) - Playwright. Configured to auto-start a dev server on port 3001 (separate from Docker on 3000). Tests run against Chromium only.
+- **E2E tests** (`e2e/*.spec.ts`) - Playwright. Configured to auto-start a dev server on port 3001. Tests run against Chromium only.
   - E2E tests use a **separate test database** at `prisma/test-e2e.db` (not `jobsyncdb/`). The database is created on first run via `playwright.config.ts` and data is cleared/reseeded via `e2e/global-setup.ts` on each run.
   - E2E tests require `npx prisma generate` to have been run at least once.
 
 ## Environment Setup
 
-Copy `.env.example` to `.env`. Docker Compose reads variables from this file.
+Copy `.env.example` to `.env`.
 
 Key variables:
-- `DATABASE_URL` - SQLite path. Docker overrides this to `file:/data/dev.db`. For local (non-Docker) development, set to `file:./dev.db`.
+- `DATABASE_URL` - SQLite path (default: `file:./dev.db`).
 - `USER_EMAIL` - Email for the single local user (default: admin@example.com)
 - `TZ` - Timezone (important for activity time tracking)
 - `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` / `OLLAMA_BASE_URL` - AI provider config (all optional)
