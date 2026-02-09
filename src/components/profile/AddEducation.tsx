@@ -1,5 +1,5 @@
 "use client";
-import { AddEducationFormSchema } from "@/models/AddEductionForm.schema";
+import { AddEducationFormSchema } from "@/models/addEducationForm.schema";
 import { Education, ResumeSection } from "@/models/profile.model";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

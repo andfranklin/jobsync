@@ -10,9 +10,17 @@ import {
 import { FormControl } from "./ui/form";
 import { ControllerRenderProps } from "react-hook-form";
 
+interface SelectOption {
+  id: string;
+  label?: string;
+  value?: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
 interface SelectProps {
   label: string;
-  options: any[];
+  options: SelectOption[];
   field: ControllerRenderProps<any, any>;
 }
 

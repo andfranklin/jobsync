@@ -25,8 +25,15 @@ import { useState, useTransition } from "react";
 import { createLocation } from "@/actions/job.actions";
 import { toast } from "./ui/use-toast";
 
+interface MultiSelectComboboxOption {
+  label: string;
+  value: string;
+  id: string;
+  [key: string]: unknown;
+}
+
 interface MultiSelectComboboxProps {
-  options: any[];
+  options: MultiSelectComboboxOption[];
   field: ControllerRenderProps<any, any>;
   creatable?: boolean;
   placeholder?: string;
@@ -174,7 +181,7 @@ export function MultiSelectCombobox({
       {selectedValues.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {selectedValues.map((id: string) => {
-            const option = options.find((opt: any) => opt.id === id);
+            const option = options.find((opt: MultiSelectComboboxOption) => opt.id === id);
             return option ? (
               <Badge
                 key={id}

@@ -56,7 +56,7 @@ export const checkIfModelIsRunning = async (
       };
     }
 
-    const isRunning = data.models.some((m: any) => m.name === modelName);
+    const isRunning = data.models.some((m: { name: string }) => m.name === modelName);
 
     if (!isRunning) {
       return {
@@ -98,7 +98,7 @@ export const fetchRunningModels = async (): Promise<{
     }
 
     const data = await response.json();
-    const models = data.models?.map((m: any) => m.name) || [];
+    const models = data.models?.map((m: { name: string }) => m.name) || [];
     return { models };
   } catch (error) {
     console.error("Error fetching running models:", error);

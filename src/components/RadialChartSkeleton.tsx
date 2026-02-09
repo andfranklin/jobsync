@@ -1,6 +1,6 @@
 import React from "react";
 
-export const RadialChartSekeleton = () => {
+export const RadialChartSkeleton = () => {
   return (
     <div className="relative cursor-default w-full h-full max-h-[180px] max-w-[180px] flex items-center justify-center">
       <div className="absolute inset-0 flex items-center justify-center">

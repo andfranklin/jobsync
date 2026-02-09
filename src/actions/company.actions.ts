@@ -2,7 +2,7 @@
 import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
 import { AddCompanyFormSchema } from "@/models/addCompanyForm.schema";
-import { getCurrentUser } from "@/utils/user.utils";
+import { requireUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -13,11 +13,7 @@ export const getCompanyList = async (
   countBy?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
@@ -67,18 +63,14 @@ export const getCompanyList = async (
 
 export const getAllCompanies = async (): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
+    const user = await requireUser();
 
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
-    const comapnies = await prisma.company.findMany({
+    const companies = await prisma.company.findMany({
       where: {
         createdBy: user.id,
       },
     });
-    return comapnies;
+    return companies;
   } catch (error) {
     const msg = "Failed to fetch all companies. ";
     return handleError(error, msg);
@@ -103,11 +95,7 @@ export const addCompany = async (
   data: z.infer<typeof AddCompanyFormSchema>,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const { company, logoUrl } = data;
 
@@ -142,11 +130,7 @@ export const updateCompany = async (
   data: z.infer<typeof AddCompanyFormSchema>,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const { id, company, logoUrl, createdBy } = data;
 
@@ -198,11 +182,7 @@ export const getCompanyById = async (
     if (!companyId) {
       throw new Error("Please provide company id");
     }
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const company = await prisma.company.findUnique({
       where: {
@@ -212,10 +192,7 @@ export const getCompanyById = async (
     return company;
   } catch (error) {
     const msg = "Failed to fetch company by Id. ";
-    console.error(msg);
-    if (error instanceof Error) {
-      return { success: false, message: error.message };
-    }
+    return handleError(error, msg);
   }
 };
 
@@ -223,11 +200,7 @@ export const deleteCompanyById = async (
   companyId: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const experiences = await prisma.workExperience.count({
       where: {

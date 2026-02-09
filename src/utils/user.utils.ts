@@ -7,3 +7,11 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
   if (!user) return null;
   return { id: user.id, name: user.name, email: user.email };
 };
+
+export const requireUser = async (): Promise<CurrentUser> => {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+  return user;
+};

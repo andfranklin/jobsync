@@ -8,7 +8,7 @@ import {
   startActivityFromTask,
   getActivityTypesWithTaskCounts,
 } from "@/actions/task.actions";
-import { getCurrentUser } from "@/utils/user.utils";
+import { getCurrentUser, requireUser } from "@/utils/user.utils";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -37,6 +37,7 @@ jest.mock("@prisma/client", () => {
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 describe("taskActions", () => {
@@ -63,6 +64,7 @@ describe("taskActions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (requireUser as jest.Mock).mockResolvedValue(mockUser);
   });
 
   describe("getTasksList", () => {
@@ -192,6 +194,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await getTasksList();
 
@@ -255,6 +258,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await getTaskById("task-id");
 
@@ -319,6 +323,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await createTask(taskData);
 
@@ -416,6 +421,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await updateTask(updateData);
 
@@ -468,6 +474,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await updateTaskStatus("task-id", "complete");
 
@@ -543,6 +550,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await deleteTaskById("task-id");
 
@@ -707,6 +715,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await startActivityFromTask("task-id");
 
@@ -802,6 +811,7 @@ describe("taskActions", () => {
 
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await getActivityTypesWithTaskCounts();
 

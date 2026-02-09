@@ -11,7 +11,7 @@ import {
 } from "@/actions/job.actions";
 import { getMockJobDetails, getMockJobsList } from "@/lib/mock.utils";
 import { JobResponse } from "@/models/job.model";
-import { getCurrentUser } from "@/utils/user.utils";
+import { getCurrentUser, requireUser } from "@/utils/user.utils";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
@@ -46,6 +46,7 @@ jest.mock("@prisma/client", () => {
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 describe("jobActions", () => {
@@ -71,6 +72,7 @@ describe("jobActions", () => {
   };
   beforeEach(() => {
     jest.clearAllMocks();
+    (requireUser as jest.Mock).mockResolvedValue(mockUser);
   });
   describe("getStatusList", () => {
     it("should return status list on successful query", async () => {
@@ -161,6 +163,7 @@ describe("jobActions", () => {
     });
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       const result = await getJobsList();
 
@@ -341,6 +344,7 @@ describe("jobActions", () => {
     });
     it("should throw error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       await expect(getJobDetails("job123")).resolves.toStrictEqual({
         success: false,
@@ -389,6 +393,7 @@ describe("jobActions", () => {
   });
   it("should throw error when user is not authenticated", async () => {
     (getCurrentUser as jest.Mock).mockResolvedValue(null);
+    (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
     await expect(getJobDetails("job123")).resolves.toStrictEqual({
       success: false,
@@ -398,6 +403,7 @@ describe("jobActions", () => {
   describe("createLocation", () => {
     it("should throw error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       await expect(createLocation("location-name")).resolves.toStrictEqual({
         success: false,
@@ -548,6 +554,7 @@ describe("jobActions", () => {
     });
     it("should throw error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       await expect(addJob(jobData)).resolves.toStrictEqual({
         success: false,
@@ -579,6 +586,7 @@ describe("jobActions", () => {
     });
     it("should throw error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       await expect(updateJob(jobData)).resolves.toStrictEqual({
         success: false,
@@ -656,6 +664,7 @@ describe("jobActions", () => {
     });
     it("should throw error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       await expect(
         updateJobStatus(jobData.id, jobData.status)
@@ -668,6 +677,7 @@ describe("jobActions", () => {
   describe("deleteJobById", () => {
     it("should return error when user is not authenticated", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(new Error("Not authenticated"));
 
       await expect(deleteJobById("job-id")).resolves.toStrictEqual({
         success: false,

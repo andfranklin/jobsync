@@ -29,8 +29,15 @@ import { createJobTitle } from "@/actions/jobtitle.actions";
 import { toast } from "./ui/use-toast";
 import { createActivityType } from "@/actions/activity.actions";
 
+interface ComboboxOption {
+  label: string;
+  value: string;
+  id: string;
+  [key: string]: unknown;
+}
+
 interface ComboboxProps {
-  options: any[];
+  options: ComboboxOption[];
   field: ControllerRenderProps<any, any>;
   creatable?: boolean;
 }

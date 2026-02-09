@@ -17,7 +17,36 @@ const FIELDS: string[] = [
   "Status",
 ];
 
-const extractLabel = (field: { label?: string } | undefined): string => {
+interface JobExportRow {
+  index: number;
+  createdAt: string;
+  applied: string;
+  appliedDate: string;
+  Company: string;
+  JobTitle: string;
+  jobType: string;
+  Locations: string;
+  JobSource: string;
+  Status: string;
+}
+
+interface LabeledField {
+  label?: string;
+}
+
+interface JobRecord {
+  createdAt?: Date | string;
+  applied?: boolean;
+  appliedDate?: Date | string;
+  Company?: LabeledField;
+  JobTitle?: LabeledField;
+  jobType?: string;
+  Locations?: { label: string }[];
+  JobSource?: LabeledField;
+  Status?: LabeledField;
+}
+
+const extractLabel = (field: LabeledField | undefined): string => {
   return field?.label || "N/A";
 };
 
@@ -35,9 +64,9 @@ const mapJobType = (type: string | undefined): string => {
 };
 
 const transformJobData = (
-  job: Record<string, any>,
+  job: JobRecord,
   index: number
-): Record<string, any> => {
+): JobExportRow => {
   return {
     index: index + 1,
     createdAt: job.createdAt
@@ -50,7 +79,7 @@ const transformJobData = (
     Company: extractLabel(job.Company),
     JobTitle: extractLabel(job.JobTitle),
     jobType: mapJobType(job.jobType),
-    Locations: job.Locations?.map((l: any) => l.label).join(", ") || "N/A",
+    Locations: job.Locations?.map((l: { label: string }) => l.label).join(", ") || "N/A",
     JobSource: extractLabel(job.JobSource),
     Status: extractLabel(job.Status),
   };

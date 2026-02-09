@@ -1,17 +1,15 @@
 import "server-only";
 
-import { getCurrentUser } from "@/utils/user.utils";
 import { NextRequest, NextResponse } from "next/server";
 import { streamText, Output } from "ai";
 import { getModel } from "@/lib/ai/providers";
-import { checkRateLimit } from "@/lib/ai/rate-limiter";
 import {
   ResumeReviewSchema,
   RESUME_REVIEW_SYSTEM_PROMPT,
   buildResumeReviewPrompt,
-  AIUnavailableError,
   preprocessResume,
 } from "@/lib/ai";
+import { authenticateAndRateLimit, handleAiError } from "@/lib/ai/route-helpers";
 import { Resume } from "@/models/profile.model";
 import { AiModel } from "@/models/ai.model";
 
@@ -20,25 +18,8 @@ import { AiModel } from "@/models/ai.model";
  * Single comprehensive LLM call for complete resume analysis
  */
 export const POST = async (req: NextRequest) => {
-  const user = await getCurrentUser();
-  const userId = user?.id;
-
-  if (!userId) {
-    return NextResponse.json({ message: "No user found. Run the seed script." }, { status: 500 });
-  }
-
-  // Rate limiting
-  const rateLimit = checkRateLimit(userId);
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      {
-        error: `Rate limit exceeded. Try again in ${Math.ceil(
-          rateLimit.resetIn / 1000,
-        )} seconds.`,
-      },
-      { status: 429 },
-    );
-  }
+  const authResult = await authenticateAndRateLimit();
+  if (!authResult.success) return authResult.response;
 
   const { selectedModel, resume } = (await req.json()) as {
     selectedModel: AiModel;
@@ -83,24 +64,6 @@ export const POST = async (req: NextRequest) => {
 
     return result.toTextStreamResponse();
   } catch (error) {
-    console.error("Resume review error:", error);
-
-    if (error instanceof AIUnavailableError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
-    }
-
-    const message =
-      error instanceof Error ? error.message : "AI request failed";
-
-    if (message.includes("fetch failed") || message.includes("ECONNREFUSED")) {
-      return NextResponse.json(
-        {
-          error: `Cannot connect to ${selectedModel.provider} service. Please ensure the service is running.`,
-        },
-        { status: 503 },
-      );
-    }
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleAiError(error, selectedModel.provider);
   }
 };

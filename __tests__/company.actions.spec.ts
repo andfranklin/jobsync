@@ -5,7 +5,7 @@ import {
   getCompanyList,
   updateCompany,
 } from "@/actions/company.actions";
-import { getCurrentUser } from "@/utils/user.utils";
+import { getCurrentUser, requireUser } from "@/utils/user.utils";
 import { revalidatePath } from "next/cache";
 import { PrismaClient } from "@prisma/client";
 
@@ -28,6 +28,7 @@ jest.mock("@prisma/client", () => {
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 jest.mock("next/cache", () => ({
@@ -39,6 +40,7 @@ describe("Company Actions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (requireUser as jest.Mock).mockResolvedValue(mockUser);
   });
   describe("getCompanyList", () => {
     it("should return company list for authenticated user", async () => {
@@ -71,7 +73,9 @@ describe("Company Actions", () => {
     });
 
     it("should throw an error for unauthenticated user", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(
+        new Error("Not authenticated")
+      );
 
       await expect(getCompanyList(1, 10)).resolves.toStrictEqual({
         success: false,
@@ -127,7 +131,7 @@ describe("Company Actions", () => {
     });
 
     it("should handle errors", async () => {
-      (getCurrentUser as jest.Mock).mockRejectedValue(
+      (requireUser as jest.Mock).mockRejectedValue(
         new Error("Database error"),
       );
 
@@ -160,7 +164,9 @@ describe("Company Actions", () => {
     });
 
     it("should throw an error for unauthenticated user", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(
+        new Error("Not authenticated")
+      );
 
       await expect(getAllCompanies()).resolves.toStrictEqual({
         success: false,
@@ -220,7 +226,9 @@ describe("Company Actions", () => {
     });
 
     it("should return an error if the user is not authenticated", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(
+        new Error("Not authenticated")
+      );
 
       const result = await addCompany(validData);
 
@@ -390,7 +398,9 @@ describe("Company Actions", () => {
     });
 
     it("should return error if user is not authenticated", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(
+        new Error("Not authenticated")
+      );
 
       const result = await updateCompany(validData);
 
@@ -528,7 +538,9 @@ describe("Company Actions", () => {
     });
 
     it("should throw error when user is not authenticated", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(
+        new Error("Not authenticated")
+      );
 
       await expect(getCompanyById(mockCompanyId)).resolves.toStrictEqual({
         success: false,

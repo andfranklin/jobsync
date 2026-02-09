@@ -1,5 +1,5 @@
 import { getActivitiesList } from "@/actions/activity.actions";
-import { getCurrentUser } from "@/utils/user.utils";
+import { getCurrentUser, requireUser } from "@/utils/user.utils";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -19,6 +19,7 @@ jest.mock("@prisma/client", () => {
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 describe("activity.actions", () => {
@@ -59,6 +60,7 @@ describe("activity.actions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (requireUser as jest.Mock).mockResolvedValue(mockUser);
   });
 
   describe("getActivitiesList", () => {
@@ -79,7 +81,9 @@ describe("activity.actions", () => {
     });
 
     it("should return error when user is not authenticated", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(null);
+      (requireUser as jest.Mock).mockRejectedValue(
+        new Error("Not authenticated")
+      );
 
       const result = await getActivitiesList();
 

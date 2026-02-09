@@ -28,6 +28,7 @@ jest.mock("@prisma/client", () => {
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 describe("Dashboard Actions", () => {

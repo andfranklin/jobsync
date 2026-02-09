@@ -3,8 +3,13 @@ import { barChartData } from "@/lib/data/barChartData";
 import { ResponsiveBar } from "@nivo/bar";
 import { Card, CardContent } from "../ui/card";
 
+interface BarChartDataItem {
+  day: string;
+  [key: string]: string | number;
+}
+
 type WeeklyBarChartProps = {
-  data: any[];
+  data: BarChartDataItem[];
   keys: string[];
   groupMode?: "grouped" | "stacked";
   axisLeftLegend: string;
@@ -17,7 +22,7 @@ export default function WeeklyBarChart({
   axisLeftLegend,
 }: WeeklyBarChartProps) {
   const roundedData = data.map((item) => {
-    const newItem: any = { ...item };
+    const newItem: BarChartDataItem = { ...item };
     keys.forEach((key) => {
       if (typeof newItem[key] === "number") {
         newItem[key] = Math.round(newItem[key] * 100) / 100;

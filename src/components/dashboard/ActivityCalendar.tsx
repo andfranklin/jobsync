@@ -7,12 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 // no chart will be rendered.
 // website examples showcase many properties,
 // you'll often use just a few of them.
+interface CalendarDataItem {
+  day: string;
+  value: number;
+}
+
 export default function ActivityCalendar({
   year,
   data,
 }: {
   year: string;
-  data: any[];
+  data: CalendarDataItem[];
 }) {
   const { resolvedTheme } = useTheme();
   const borderColor = resolvedTheme === "light" ? "#ffffff" : "#0e1117";

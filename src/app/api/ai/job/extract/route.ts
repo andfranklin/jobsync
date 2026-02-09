@@ -1,16 +1,14 @@
 import "server-only";
 
-import { getCurrentUser } from "@/utils/user.utils";
 import { NextRequest, NextResponse } from "next/server";
 import { generateObject } from "ai";
 import { getModel } from "@/lib/ai/providers";
-import { checkRateLimit } from "@/lib/ai/rate-limiter";
 import {
   JOB_EXTRACT_SYSTEM_PROMPT,
   buildJobExtractPrompt,
   extractTextFromHtml,
-  AIUnavailableError,
 } from "@/lib/ai";
+import { authenticateAndRateLimit, handleAiError } from "@/lib/ai/route-helpers";
 import { JobExtractionSchema } from "@/models/jobExtraction.schema";
 import { AiModel } from "@/models/ai.model";
 
@@ -23,28 +21,8 @@ const FETCH_TIMEOUT_MS = 15000;
  * and uses AI to parse structured job data.
  */
 export const POST = async (req: NextRequest) => {
-  const user = await getCurrentUser();
-  const userId = user?.id;
-
-  if (!userId) {
-    return NextResponse.json(
-      { error: "No user found. Run the seed script." },
-      { status: 500 },
-    );
-  }
-
-  // Rate limiting
-  const rateLimit = checkRateLimit(userId);
-  if (!rateLimit.allowed) {
-    return NextResponse.json(
-      {
-        error: `Rate limit exceeded. Try again in ${Math.ceil(
-          rateLimit.resetIn / 1000,
-        )} seconds.`,
-      },
-      { status: 429 },
-    );
-  }
+  const authResult = await authenticateAndRateLimit();
+  if (!authResult.success) return authResult.response;
 
   const { url, htmlContent, selectedModel } = (await req.json()) as {
     url?: string;
@@ -167,27 +145,6 @@ export const POST = async (req: NextRequest) => {
 
     return NextResponse.json(result.object);
   } catch (error) {
-    console.error("Job extraction error:", error);
-
-    if (error instanceof AIUnavailableError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
-    }
-
-    const message =
-      error instanceof Error ? error.message : "AI extraction failed";
-
-    if (
-      message.includes("fetch failed") ||
-      message.includes("ECONNREFUSED")
-    ) {
-      return NextResponse.json(
-        {
-          error: `Cannot connect to ${selectedModel.provider} service. Please ensure the service is running.`,
-        },
-        { status: 503 },
-      );
-    }
-
-    return NextResponse.json({ error: message }, { status: 500 });
+    return handleAiError(error, selectedModel.provider);
   }
 };

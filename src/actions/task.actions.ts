@@ -3,9 +3,10 @@ import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
 import { Task, TaskStatus } from "@/models/task.model";
 import { AddTaskFormSchema } from "@/models/addTaskForm.schema";
-import { getCurrentUser } from "@/utils/user.utils";
+import { requireUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 export const getTasksList = async (
   page: number = 1,
@@ -15,15 +16,11 @@ export const getTasksList = async (
   search?: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const offset = (page - 1) * limit;
 
-    const whereClause: any = {
+    const whereClause: Prisma.TaskWhereInput = {
       userId: user.id,
     };
 
@@ -76,11 +73,7 @@ export const getTaskById = async (
   taskId: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const task = await prisma.task.findFirst({
       where: {
@@ -113,11 +106,7 @@ export const createTask = async (
   data: z.infer<typeof AddTaskFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const validatedData = AddTaskFormSchema.parse(data);
 
@@ -148,11 +137,7 @@ export const updateTask = async (
   data: z.infer<typeof AddTaskFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     if (!data.id) {
       throw new Error("Task ID is required for update");
@@ -191,11 +176,7 @@ export const updateTaskStatus = async (
   status: TaskStatus
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const task = await prisma.task.update({
       where: {
@@ -221,11 +202,7 @@ export const deleteTaskById = async (
   taskId: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const task = await prisma.task.findFirst({
       where: {
@@ -267,11 +244,7 @@ export const startActivityFromTask = async (
   taskId: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const task = await prisma.task.findFirst({
       where: {
@@ -348,11 +321,7 @@ export const getActivityTypesWithTaskCounts = async (): Promise<
   any | undefined
 > => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const excludedStatuses = ["complete", "cancelled"];
 

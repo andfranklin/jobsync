@@ -1,7 +1,27 @@
 import { AddJob } from "@/components/myjobs/AddJob";
-import { JOB_SOURCES } from "@/lib/data/jobSourcesData";
-import { JOB_STATUSES } from "@/lib/data/jobStatusesData";
 import { getMockJobDetails, getMockList } from "@/lib/mock.utils";
+
+const JOB_SOURCES = [
+  { id: "1359dac4-a397-4461-b747-382706dcbe79", label: "Indeed", value: "indeed" },
+  { id: "a483e678-6e3d-41cf-8c6f-6540b02551eb", label: "Linkedin", value: "linkedin" },
+  { id: "8d941ed0-6882-4d88-b985-d614e9828576", label: "Monster", value: "monster" },
+  { id: "49a9a222-d5ac-452b-88d8-7258e2e58c07", label: "Glassdoor", value: "glassdoor" },
+  { id: "08642cf8-29f5-4535-ad58-63edbbace13f", label: "Company Career page", value: "careerpage" },
+  { id: "090eefe1-2f99-46d1-925f-d59e0e8f072c", label: "Google", value: "google" },
+  { id: "c0ae0c56-beed-471c-b7d3-4eb1f732fe8f", label: "ZipRecruiter", value: "ziprecruiter" },
+  { id: "108537a8-1d84-4bc3-8820-4a1cd71c5ccf", label: "Job Street", value: "jobstreet" },
+  { id: "ddd8aa2e-37c1-4dc8-b370-a844ff1ad82c", label: "Other", value: "other" },
+];
+
+const JOB_STATUSES = [
+  { id: "d7ba200a-6dc1-4ea8-acff-29ebb0d4676a", label: "Draft", value: "draft" },
+  { id: "5e7c6e8c-83e6-46e3-bf01-db8f0b503399", label: "Applied", value: "applied" },
+  { id: "79ad373a-3af2-4d7b-8314-ba64d9fc055d", label: "Interview", value: "interview" },
+  { id: "85d123b2-77c2-41f7-97a5-feebbe6f5e7b", label: "Offer", value: "offer" },
+  { id: "2ff7fed9-82ed-43f5-89ff-e8a676c1c4fe", label: "Rejected", value: "rejected" },
+  { id: "5cf01806-84ca-4fc4-8a19-986f595c8283", label: "Expired", value: "expired" },
+  { id: "c3092324-da29-42d9-82a1-8125ea45660c", label: "Archived", value: "archived" },
+];
 import "@testing-library/jest-dom";
 import { screen, render, waitFor } from "@testing-library/react";
 import { getCurrentUser } from "@/utils/user.utils";
@@ -14,6 +34,7 @@ import { toast } from "@/components/ui/use-toast";
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 jest.mock("@/actions/job.actions", () => ({

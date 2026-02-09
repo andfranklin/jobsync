@@ -13,9 +13,10 @@ import {
 } from "./ui/dropdown-menu";
 import UserAvatar from "./UserAvatar";
 import { SupportDialog } from "./SupportDialog";
+import { CurrentUser } from "@/models/user.model";
 
 interface ProfileDropdownProps {
-  user: any;
+  user: CurrentUser | null;
 }
 
 export function ProfileDropdown({ user }: ProfileDropdownProps) {

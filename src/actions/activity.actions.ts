@@ -3,17 +3,14 @@ import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
 import { Activity } from "@/models/activity.model";
 import { AddActivityFormSchema } from "@/models/addActivityForm.schema";
-import { getCurrentUser } from "@/utils/user.utils";
+import { requireUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 export const getAllActivityTypes = async (): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const activityTypes = await prisma.activityType.findMany({
       where: {
@@ -31,11 +28,7 @@ export const createActivityType = async (
   label: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const value = label.trim().toLowerCase();
 
@@ -48,8 +41,7 @@ export const createActivityType = async (
     return upsertedActivityType;
   } catch (error) {
     const msg = "Failed to create activity type. ";
-    console.error(msg, error);
-    throw new Error(msg);
+    return handleError(error, msg);
   }
 };
 
@@ -59,15 +51,11 @@ export const getActivitiesList = async (
   search?: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const offset = (page - 1) * limit;
 
-    const whereClause: any = {
+    const whereClause: Prisma.ActivityWhereInput = {
       userId: user.id,
       endTime: {
         not: null,
@@ -121,11 +109,7 @@ export const createActivity = async (
   data: Activity
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const {
       activityName,
@@ -158,11 +142,7 @@ export const deleteActivityById = async (
   activityId: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const res = await prisma.activity.delete({
       where: {
@@ -181,11 +161,7 @@ export const startActivityById = async (
   activityId: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const activity = await prisma.activity.findFirst({
       where: {
@@ -231,11 +207,7 @@ export const stopActivityById = async (
   duration: number
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const activity = await prisma.activity.update({
       where: {
@@ -256,11 +228,7 @@ export const stopActivityById = async (
 
 export const getCurrentActivity = async (): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const activity = await prisma.activity.findFirst({
       where: {

@@ -36,7 +36,7 @@ export function formatUrl(url: string) {
   return url;
 }
 
-export function handleError(error: unknown, msg = "Server Error.") {
+export function handleError(error: unknown, msg = "Server Error."): { success: false; message: string } {
   console.error(error, msg);
   if (error instanceof Error) {
     if (error.message === "fetch failed") {
@@ -45,6 +45,7 @@ export function handleError(error: unknown, msg = "Server Error.") {
     }
     return { success: false, message: error.message || msg };
   }
+  return { success: false, message: msg };
 }
 
 export function getTimestampedFileName(originalName: string): string {
@@ -62,7 +63,6 @@ export function getTimestampedFileName(originalName: string): string {
 export const combineDateAndTime = (date: Date, time: string): Date => {
   // Parse the time string into a `Date` object using a reference date
   const parsedTime = parse(time, "hh:mm a", new Date());
-  // if (isNaN(parsedTime.getTime())) throw new Error("Invalid time format");
 
   return new Date(
     date.getFullYear(),

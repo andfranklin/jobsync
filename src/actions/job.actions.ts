@@ -3,10 +3,11 @@ import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
 import { AddJobFormSchema } from "@/models/addJobForm.schema";
 import { JOB_TYPES, JobStatus } from "@/models/job.model";
-import { getCurrentUser } from "@/utils/user.utils";
+import { requireUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 export const getStatusList = async (): Promise<any | undefined> => {
   try {
@@ -35,11 +36,7 @@ export const getJobsList = async (
   search?: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     const skip = (page - 1) * limit;
 
     const filterBy = filter
@@ -54,7 +51,7 @@ export const getJobsList = async (
           }
       : {};
 
-    const whereClause: any = {
+    const whereClause: Prisma.JobWhereInput = {
       userId: user.id,
       ...filterBy,
     };
@@ -103,10 +100,7 @@ export const getJobsList = async (
 };
 
 export async function* getJobsIterator(filter?: string, pageSize = 200) {
-  const user = await getCurrentUser();
-  if (!user) {
-    throw new Error("Not authenticated");
-  }
+  const user = await requireUser();
   let page = 1;
   let fetchedCount = 0;
 
@@ -158,11 +152,7 @@ export const getJobDetails = async (
     if (!jobId) {
       throw new Error("Please provide job id");
     }
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const job = await prisma.job.findUnique({
       where: {
@@ -192,11 +182,7 @@ export const createLocation = async (
   label: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const value = label.trim().toLowerCase();
 
@@ -227,11 +213,7 @@ export const addJob = async (
   data: z.infer<typeof AddJobFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const {
       title,
@@ -283,11 +265,7 @@ export const updateJob = async (
   data: z.infer<typeof AddJobFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     if (!data.id || user.id != data.userId) {
       throw new Error("Id is not provide or no user privilages");
     }
@@ -334,7 +312,6 @@ export const updateJob = async (
         resumeId: resume,
       },
     });
-    // revalidatePath("/dashboard/myjobs", "page");
     return { job, success: true };
   } catch (error) {
     const msg = "Failed to update job. ";
@@ -347,11 +324,7 @@ export const updateJobStatus = async (
   status: JobStatus
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     const dataToUpdate = () => {
       switch (status.value) {
         case "applied":
@@ -390,11 +363,7 @@ export const deleteJobById = async (
   jobId: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const res = await prisma.job.delete({
       where: {

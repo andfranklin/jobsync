@@ -8,6 +8,7 @@ import { Task } from "@/models/task.model";
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 jest.mock("@/actions/task.actions", () => ({

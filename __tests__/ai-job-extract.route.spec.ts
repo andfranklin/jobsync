@@ -7,6 +7,7 @@ jest.mock("server-only", () => {});
 
 jest.mock("@/utils/user.utils", () => ({
   getCurrentUser: jest.fn(),
+  requireUser: jest.fn(),
 }));
 
 jest.mock("@/lib/ai/rate-limiter", () => ({

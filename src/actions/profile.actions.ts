@@ -1,13 +1,13 @@
 "use server";
 import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
-import { AddEducationFormSchema } from "@/models/AddEductionForm.schema";
+import { AddEducationFormSchema } from "@/models/addEducationForm.schema";
 import { AddContactInfoFormSchema } from "@/models/addContactInfoForm.schema";
 import { AddExperienceFormSchema } from "@/models/addExperienceForm.schema";
 import { AddSummarySectionFormSchema } from "@/models/addSummaryForm.schema";
 import { CreateResumeFormSchema } from "@/models/createResumeForm.schema";
 import { ResumeSection, SectionType, Summary } from "@/models/profile.model";
-import { getCurrentUser } from "@/utils/user.utils";
+import { requireUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -20,10 +20,7 @@ export const getResumeList = async (
   limit: number = APP_CONSTANTS.RECORDS_PER_PAGE
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
@@ -74,11 +71,7 @@ export const getResumeById = async (
     if (!resumeId) {
       throw new Error("Please provide resume id");
     }
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const resume = await prisma.resume.findUnique({
       where: {
@@ -117,11 +110,7 @@ export const addContactInfo = async (
   data: z.infer<typeof AddContactInfoFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const res = await prisma.resume.update({
       where: {
@@ -155,11 +144,7 @@ export const updateContactInfo = async (
   data: z.infer<typeof AddContactInfoFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     const res = await prisma.contactInfo.update({
       where: {
@@ -188,11 +173,7 @@ export const createResumeProfile = async (
   filePath?: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     //check if title exists
     const value = title.trim().toLowerCase();
@@ -239,7 +220,6 @@ export const createResumeProfile = async (
               },
             },
           });
-    // revalidatePath("/dashboard/myjobs", "page");
     return { success: true, data: res };
   } catch (error) {
     const msg = "Failed to create resume.";
@@ -306,11 +286,7 @@ export const deleteResumeById = async (
   fileId?: string
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     if (fileId) {
       await deleteFile(fileId);
     }
@@ -396,7 +372,6 @@ export const deleteFile = async (fileId: string) => {
       },
     });
 
-    console.log("file deleted successfully!");
   } catch (error) {
     const msg = "Failed to delete file.";
     return handleError(error, msg);
@@ -407,11 +382,7 @@ export const addResumeSummary = async (
   data: z.infer<typeof AddSummarySectionFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     const res = await prisma.resumeSection.create({
       data: {
         resumeId: data.resumeId!,
@@ -444,11 +415,7 @@ export const updateResumeSummary = async (
   data: z.infer<typeof AddSummarySectionFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     const res = await prisma.resumeSection.update({
       where: {
         id: data.id,
@@ -482,11 +449,7 @@ export const addExperience = async (
   data: z.infer<typeof AddExperienceFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
 
     if (!data.sectionId && !data.sectionTitle) {
       throw new Error("SectionTitle is required.");
@@ -531,20 +494,7 @@ export const updateExperience = async (
   data: z.infer<typeof AddExperienceFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-    // const res = await prisma.resumeSection.update({
-    //   where: {
-    //     id: data.id,
-    //   },
-    //   data: {
-    //     sectionTitle: data.sectionTitle!,
-    //   },
-    // });
-
+    const user = await requireUser();
     const summary = await prisma.workExperience.update({
       where: {
         id: data.id,
@@ -570,11 +520,7 @@ export const addEducation = async (
   data: z.infer<typeof AddEducationFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const user = await requireUser();
     const section = !data.sectionId
       ? await prisma.resumeSection.create({
           data: {
@@ -615,20 +561,7 @@ export const updateEducation = async (
   data: z.infer<typeof AddEducationFormSchema>
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-    // const res = await prisma.resumeSection.update({
-    //   where: {
-    //     id: data.id,
-    //   },
-    //   data: {
-    //     sectionTitle: data.sectionTitle!,
-    //   },
-    // });
-
+    const user = await requireUser();
     const summary = await prisma.education.update({
       where: {
         id: data.id,
