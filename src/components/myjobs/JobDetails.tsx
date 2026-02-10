@@ -12,18 +12,126 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Button } from "../ui/button";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, RotateCcw, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AiJobMatchSection } from "../profile/AiJobMatchSection";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DownloadFileButton } from "../profile/DownloadFileButton";
+import { getJobPipelineInfo } from "@/actions/job.actions";
+import { getFromLocalStorage } from "@/utils/localstorage.utils";
+import { defaultPipelineSettings } from "@/models/pipeline.model";
+import { toast } from "../ui/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 function JobDetails({ job }: { job: JobResponse }) {
   const [aiSectionOpen, setAiSectionOpen] = useState(false);
+  const [hasPipelineData, setHasPipelineData] = useState(false);
+  const [isReprocessing, setIsReprocessing] = useState(false);
+  const [pipelineInfo, setPipelineInfo] = useState<{
+    configHash: string;
+    processedAt: Date;
+    configChanged: boolean;
+  } | null>(null);
   const router = useRouter();
   const goBack = () => router.back();
   const getAiJobMatch = async () => {
     setAiSectionOpen(true);
+  };
+
+  useEffect(() => {
+    if (job?.id) {
+      const aiSettings = getFromLocalStorage("aiSettings", null) as {
+        provider: string;
+        model: string;
+        numCtx?: number;
+      } | null;
+      const pipelineSettings = getFromLocalStorage(
+        "pipelineSettings",
+        defaultPipelineSettings,
+      );
+      const currentSettings = aiSettings
+        ? {
+            provider: aiSettings.provider,
+            model: aiSettings.model || "llama3.2",
+            numCtx: aiSettings.numCtx,
+            cleaningMethod: pipelineSettings.cleaningMethod,
+          }
+        : undefined;
+
+      getJobPipelineInfo(job.id, currentSettings).then((result) => {
+        if (result.success && result.hasPipelineData) {
+          setHasPipelineData(true);
+          if ("configHash" in result) {
+            setPipelineInfo({
+              configHash: result.configHash,
+              processedAt: result.processedAt,
+              configChanged: result.configChanged,
+            });
+          }
+        }
+      });
+    }
+  }, [job?.id]);
+
+  const handleReprocess = async () => {
+    const selectedModel = getFromLocalStorage("aiSettings", null);
+    if (!selectedModel) {
+      toast({
+        variant: "destructive",
+        title: "No AI model configured",
+        description: "Configure an AI model in Settings first.",
+      });
+      return;
+    }
+
+    setIsReprocessing(true);
+    try {
+      const pipelineSettings = getFromLocalStorage(
+        "pipelineSettings",
+        defaultPipelineSettings,
+      );
+      const res = await fetch("/api/ai/job/reprocess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id, selectedModel, pipelineSettings }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast({
+          variant: "destructive",
+          title: "Re-process failed",
+          description: err.error || "An error occurred.",
+        });
+        return;
+      }
+
+      const extracted = await res.json();
+      const updatedFields: string[] = [];
+      if (extracted.title) updatedFields.push("title");
+      if (extracted.company) updatedFields.push("company");
+      if (extracted.description) updatedFields.push("description");
+      if (extracted.locations?.length) updatedFields.push("locations");
+
+      toast({
+        variant: "success",
+        description: `Re-processed successfully. Updated: ${updatedFields.join(", ") || "extraction complete"}.`,
+      });
+      router.refresh();
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Re-process failed",
+        description: "Network error. Check your connection.",
+      });
+    } finally {
+      setIsReprocessing(false);
+    }
   };
   const getJobType = (code: string) => {
     switch (code) {
@@ -43,18 +151,51 @@ function JobDetails({ job }: { job: JobResponse }) {
         <Button title="Go Back" size="sm" variant="outline" onClick={goBack}>
           <ArrowLeft />
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 gap-1 cursor-pointer"
-          onClick={getAiJobMatch}
-          // disabled={loading}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-            Match with AI
-          </span>
-        </Button>
+        <div className="flex gap-2">
+          {hasPipelineData && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1 cursor-pointer relative"
+                    onClick={handleReprocess}
+                    disabled={isReprocessing}
+                  >
+                    {isReprocessing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    )}
+                    <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                      Re-process
+                    </span>
+                    {pipelineInfo?.configChanged && (
+                      <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-orange-500" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {pipelineInfo?.configChanged
+                    ? "Pipeline settings have changed — re-process to update"
+                    : "Re-process with current pipeline settings"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 cursor-pointer"
+            onClick={getAiJobMatch}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Match with AI
+            </span>
+          </Button>
+        </div>
       </div>
       {job?.id && (
         <Card className="col-span-3">
@@ -112,7 +253,25 @@ function JobDetails({ job }: { job: JobResponse }) {
           <div className="my-4 ml-4">
             <TipTapContentViewer content={job?.description} />
           </div>
-          <CardFooter></CardFooter>
+          <CardFooter>
+            {pipelineInfo && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="font-mono">Pipeline: {pipelineInfo.configHash}</span>
+                <span>·</span>
+                <span>
+                  Processed {format(new Date(pipelineInfo.processedAt), "PP")}
+                </span>
+                {pipelineInfo.configChanged && (
+                  <>
+                    <span>·</span>
+                    <span className="text-orange-500 font-medium">
+                      Settings changed
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+          </CardFooter>
         </Card>
       )}
       {

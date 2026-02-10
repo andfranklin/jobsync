@@ -8,6 +8,10 @@ import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { hashPipelineConfig } from "@/models/pipeline.model";
+import type { PipelineConfig } from "@/models/pipeline.model";
+import type { AiProvider } from "@/models/ai.model";
+import { getTextLimit } from "@/lib/ai/config";
 
 export const getStatusList = async (): Promise<any | undefined> => {
   try {
@@ -375,5 +379,107 @@ export const deleteJobById = async (
   } catch (error) {
     const msg = "Failed to delete job.";
     return handleError(error, msg);
+  }
+};
+
+export const getLatestPipelineRun = async (jobId: string) => {
+  try {
+    await requireUser();
+    const run = await prisma.pipelineRun.findFirst({
+      where: { jobId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        configHash: true,
+        status: true,
+        createdAt: true,
+        sourceUrl: true,
+      },
+    });
+    return { run, success: true };
+  } catch (error) {
+    return handleError(error, "Failed to fetch pipeline run.");
+  }
+};
+
+export const checkReprocessAvailable = async (
+  jobId: string,
+  currentConfig: PipelineConfig,
+) => {
+  try {
+    await requireUser();
+    const latestRun = await prisma.pipelineRun.findFirst({
+      where: { jobId },
+      orderBy: { createdAt: "desc" },
+      select: { configHash: true, rawContent: true },
+    });
+
+    if (!latestRun || !latestRun.rawContent) {
+      return { available: false, reason: "no-data" as const };
+    }
+
+    const currentHash = hashPipelineConfig(currentConfig);
+    const configChanged = latestRun.configHash !== currentHash;
+
+    return {
+      available: configChanged,
+      reason: configChanged ? ("config-changed" as const) : ("up-to-date" as const),
+      previousHash: latestRun.configHash.substring(0, 8),
+    };
+  } catch {
+    return { available: false, reason: "error" as const };
+  }
+};
+
+export const getJobPipelineInfo = async (
+  jobId: string,
+  currentSettings?: {
+    provider: string;
+    model: string;
+    numCtx?: number;
+    cleaningMethod: string;
+  },
+) => {
+  try {
+    await requireUser();
+    const latestRun = await prisma.pipelineRun.findFirst({
+      where: { jobId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        configHash: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    if (!latestRun) {
+      return { success: true, hasPipelineData: false } as const;
+    }
+
+    let configChanged = false;
+    if (currentSettings) {
+      const numCtx = currentSettings.numCtx ?? 8192;
+      const config: PipelineConfig = {
+        cleaner: currentSettings.cleaningMethod as "readability" | "html-strip",
+        model: currentSettings.model,
+        provider: currentSettings.provider as AiProvider,
+        numCtx,
+        temperature: 0.1,
+        maxInputChars: getTextLimit(currentSettings.provider, numCtx),
+      };
+      const currentHash = hashPipelineConfig(config);
+      configChanged = latestRun.configHash !== currentHash;
+    }
+
+    return {
+      success: true,
+      hasPipelineData: true,
+      configHash: latestRun.configHash.substring(0, 8),
+      processedAt: latestRun.createdAt,
+      status: latestRun.status,
+      configChanged,
+    } as const;
+  } catch (error) {
+    return handleError(error, "Failed to fetch pipeline info.");
   }
 };

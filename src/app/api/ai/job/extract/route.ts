@@ -18,11 +18,14 @@ import {
 } from "@/lib/ai/pipeline";
 import { JobExtractionSchema } from "@/models/jobExtraction.schema";
 import { AiModel } from "@/models/ai.model";
-import type { PipelineConfig } from "@/models/pipeline.model";
+import type { PipelineConfig, PipelineSettings } from "@/models/pipeline.model";
+import { defaultPipelineSettings } from "@/models/pipeline.model";
 import { getTextLimit } from "@/lib/ai/config";
+import { fetchWithPlaywright } from "@/lib/scraping/playwright-fetcher";
 
 const FETCH_TIMEOUT_MS = 15000;
 const EXTRACTION_TEMPERATURE = 0.1;
+const MIN_MEANINGFUL_CONTENT_LENGTH = 500;
 
 /**
  * Job Extraction Endpoint
@@ -33,11 +36,13 @@ export const POST = async (req: NextRequest) => {
   const authResult = await authenticateAndRateLimit();
   if (!authResult.success) return authResult.response;
 
-  const { url, htmlContent, selectedModel } = (await req.json()) as {
+  const { url, htmlContent, selectedModel, pipelineSettings: rawPipelineSettings } = (await req.json()) as {
     url?: string;
     htmlContent?: string;
     selectedModel: AiModel;
+    pipelineSettings?: PipelineSettings;
   };
+  const pipelineSettings = rawPipelineSettings ?? defaultPipelineSettings;
 
   if (!selectedModel) {
     return NextResponse.json(
@@ -69,7 +74,7 @@ export const POST = async (req: NextRequest) => {
   const numCtx = selectedModel.numCtx ?? 8192;
   const maxTextLength = getTextLimit(selectedModel.provider, numCtx);
   const pipelineConfig: PipelineConfig = {
-    cleaner: htmlContent ? "html-strip" : "readability",
+    cleaner: htmlContent ? "html-strip" : pipelineSettings.cleaningMethod,
     model: modelName,
     provider: selectedModel.provider,
     numCtx,
@@ -83,18 +88,39 @@ export const POST = async (req: NextRequest) => {
     let rawContent: string;
     let pageText: string;
 
+    const cleanHtml = (html: string) =>
+      pipelineConfig.cleaner === "readability"
+        ? extractMainContent(html)
+        : extractTextFromHtml(html);
+
     if (htmlContent) {
       // User pasted content directly — skip URL fetch
       rawContent = htmlContent;
       pageText = extractTextFromHtml(htmlContent);
+    } else if (pipelineSettings.fetchMethod === "always-playwright") {
+      // Skip standard fetch entirely
+      try {
+        rawContent = await fetchWithPlaywright(url!);
+        pageText = cleanHtml(rawContent);
+      } catch (playwrightError) {
+        console.error("Playwright fetch failed:", playwrightError);
+        return NextResponse.json(
+          {
+            error: "Browser fetch failed. Try pasting the job description manually.",
+          },
+          { status: 422 },
+        );
+      }
     } else {
-      // Fetch the webpage
+      // Standard fetch, with optional Playwright fallback
+      let needsPlaywrightFallback = false;
+      let fetchErrorForFallback: string | undefined;
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-      let response: Response;
       try {
-        response = await fetch(url!, {
+        const response = await fetch(url!, {
           signal: controller.signal,
           headers: {
             "User-Agent":
@@ -102,6 +128,25 @@ export const POST = async (req: NextRequest) => {
             Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           },
         });
+
+        if (response.status === 403 || response.status === 429) {
+          needsPlaywrightFallback = true;
+          fetchErrorForFallback = `Site returned ${response.status}`;
+        } else if (!response.ok) {
+          return NextResponse.json(
+            { error: `Failed to fetch the page (HTTP ${response.status}).` },
+            { status: 422 },
+          );
+        } else {
+          rawContent = await response.text();
+          pageText = cleanHtml(rawContent);
+
+          // If extracted content is suspiciously short, the page likely needs JS rendering
+          if (pageText.length < MIN_MEANINGFUL_CONTENT_LENGTH) {
+            needsPlaywrightFallback = true;
+            fetchErrorForFallback = "Standard fetch returned minimal content";
+          }
+        }
       } catch (fetchError) {
         if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
           return NextResponse.json(
@@ -117,25 +162,34 @@ export const POST = async (req: NextRequest) => {
         clearTimeout(timeout);
       }
 
-      if (response.status === 403 || response.status === 429) {
+      // Playwright fallback (only if configured)
+      if (needsPlaywrightFallback && pipelineSettings.fetchMethod === "standard-with-fallback") {
+        try {
+          rawContent = await fetchWithPlaywright(url!);
+          pageText = cleanHtml(rawContent);
+        } catch (playwrightError) {
+          const detail = fetchErrorForFallback
+            ? ` (${fetchErrorForFallback})`
+            : "";
+          console.error("Playwright fallback failed:", playwrightError);
+          return NextResponse.json(
+            {
+              error: `This site blocked the request and the browser fallback failed${detail}. Try pasting the job description manually.`,
+            },
+            { status: 422 },
+          );
+        }
+      } else if (needsPlaywrightFallback && pipelineSettings.fetchMethod === "standard") {
+        // Standard-only mode — return the error directly
         return NextResponse.json(
           {
-            error:
-              "This site blocked the request. Try pasting the job description manually.",
+            error: fetchErrorForFallback?.includes("returned")
+              ? "This site blocked the request. Try pasting the job description manually."
+              : "Could not extract enough text from this page. The site may require JavaScript or login.",
           },
           { status: 422 },
         );
       }
-
-      if (!response.ok) {
-        return NextResponse.json(
-          { error: `Failed to fetch the page (HTTP ${response.status}).` },
-          { status: 422 },
-        );
-      }
-
-      rawContent = await response.text();
-      pageText = extractMainContent(rawContent);
     }
 
     // Create pipeline run once we have raw content

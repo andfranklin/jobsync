@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/utils/user.utils";
 import { checkRateLimit } from "@/lib/ai/rate-limiter";
 import { generateObject } from "ai";
+import { fetchWithPlaywright } from "@/lib/scraping/playwright-fetcher";
 
 // Must mock before importing the route
 jest.mock("server-only", () => {});
@@ -20,6 +21,21 @@ jest.mock("@/lib/ai/providers", () => ({
 
 jest.mock("ai", () => ({
   generateObject: jest.fn(),
+}));
+
+jest.mock("@/lib/ai/config", () => ({
+  getTextLimit: jest.fn().mockReturnValue(15000),
+}));
+
+jest.mock("@/lib/ai/pipeline", () => ({
+  createPipelineRun: jest.fn().mockResolvedValue({ id: "run-1" }),
+  updatePipelineRunCleaned: jest.fn().mockResolvedValue({}),
+  updatePipelineRunExtracted: jest.fn().mockResolvedValue({}),
+  updatePipelineRunFailed: jest.fn().mockResolvedValue({}),
+}));
+
+jest.mock("@/lib/scraping/playwright-fetcher", () => ({
+  fetchWithPlaywright: jest.fn(),
 }));
 
 // Minimal mock for @/lib/ai barrel — only what the route imports
@@ -73,12 +89,26 @@ function createRequest(body: object) {
   return { json: async () => body } as any;
 }
 
-// Generate HTML with enough text content (>100 chars)
+// Generate HTML with enough text content (>500 chars after tag stripping)
 const MOCK_HTML = `<html><body>
   <h1>Software Engineer</h1>
   <p>Acme Corp is looking for a Software Engineer to join our team in San Francisco.
   You will work on cutting-edge technology and help build the future of our platform.
   Requirements include 5+ years of experience in software development.</p>
+  <h2>Responsibilities</h2>
+  <ul>
+    <li>Design and implement scalable backend services using modern frameworks</li>
+    <li>Collaborate with cross-functional teams to define and ship new features</li>
+    <li>Write clean, maintainable code with comprehensive test coverage</li>
+    <li>Participate in code reviews and mentor junior developers on best practices</li>
+  </ul>
+  <h2>Qualifications</h2>
+  <ul>
+    <li>Bachelor's degree in Computer Science or equivalent practical experience</li>
+    <li>Strong proficiency in Python, Java, or TypeScript</li>
+    <li>Experience with cloud platforms such as AWS, GCP, or Azure</li>
+    <li>Excellent problem-solving skills and attention to detail</li>
+  </ul>
 </body></html>`;
 
 describe("POST /api/ai/job/extract", () => {
@@ -186,30 +216,49 @@ describe("POST /api/ai/job/extract", () => {
     expect(data.error).toContain("Invalid URL");
   });
 
-  it("should return 422 when target site returns 403", async () => {
+  it("should fall back to Playwright when fetch returns 403", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
       status: 403,
     });
+    (fetchWithPlaywright as jest.Mock).mockResolvedValue(MOCK_HTML);
+
+    const response = await POST(createRequest(VALID_BODY) as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.title).toBe("Software Engineer");
+    expect(fetchWithPlaywright).toHaveBeenCalledWith("https://example.com/job/123");
+  });
+
+  it("should return 422 when fetch returns 403 and Playwright also fails", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 403,
+    });
+    (fetchWithPlaywright as jest.Mock).mockRejectedValue(
+      new Error("Browser not installed"),
+    );
 
     const response = await POST(createRequest(VALID_BODY) as any);
     const data = await response.json();
 
     expect(response.status).toBe(422);
-    expect(data.error).toContain("blocked the request");
+    expect(data.error).toContain("browser fallback failed");
   });
 
-  it("should return 422 when target site returns 429", async () => {
+  it("should fall back to Playwright when fetch returns 429", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
       status: 429,
     });
+    (fetchWithPlaywright as jest.Mock).mockResolvedValue(MOCK_HTML);
 
     const response = await POST(createRequest(VALID_BODY) as any);
     const data = await response.json();
 
-    expect(response.status).toBe(422);
-    expect(data.error).toContain("blocked the request");
+    expect(response.status).toBe(200);
+    expect(fetchWithPlaywright).toHaveBeenCalled();
   });
 
   it("should return 422 when target site returns other error", async () => {
@@ -247,18 +296,23 @@ describe("POST /api/ai/job/extract", () => {
     expect(data.error).toContain("Could not reach the URL");
   });
 
-  it("should return 422 when extracted text is too short", async () => {
+  it("should return 422 when extracted text is too short from both fetch and Playwright", async () => {
+    const shortHtml = "<html><body><p>Hi</p></body></html>";
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => "<html><body><p>Hi</p></body></html>",
+      text: async () => shortHtml,
     });
+    // Playwright also returns short content
+    (fetchWithPlaywright as jest.Mock).mockResolvedValue(shortHtml);
 
     const response = await POST(createRequest(VALID_BODY) as any);
     const data = await response.json();
 
     expect(response.status).toBe(422);
     expect(data.error).toContain("not extract enough text");
+    // Should have tried Playwright since standard fetch content was short
+    expect(fetchWithPlaywright).toHaveBeenCalled();
   });
 
   it("should return 503 when AI provider connection fails", async () => {

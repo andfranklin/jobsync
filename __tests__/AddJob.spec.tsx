@@ -337,6 +337,7 @@ describe("AddJob Component", () => {
             body: JSON.stringify({
               url: "https://example.com/job/123",
               selectedModel: { provider: "ollama", model: "llama3.2" },
+              pipelineSettings: { cleaningMethod: "readability", fetchMethod: "standard-with-fallback" },
             }),
           }),
         );

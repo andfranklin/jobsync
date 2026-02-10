@@ -47,6 +47,11 @@ import {
   PowerOff,
 } from "lucide-react";
 import { PullProgress } from "@/utils/ai.utils";
+import {
+  defaultPipelineSettings,
+  type CleaningMethod,
+  type FetchMethod,
+} from "@/models/pipeline.model";
 
 interface DeepseekModelResponse {
   object: string;
@@ -86,6 +91,10 @@ function AiSettings() {
   // Context length
   const CONTEXT_LENGTH_OPTIONS = [4096, 8192, 16384, 32768];
   const [numCtx, setNumCtx] = useState(8192);
+
+  // Pipeline settings
+  const [cleaningMethod, setCleaningMethod] = useState<CleaningMethod>("readability");
+  const [fetchMethod, setFetchMethod] = useState<FetchMethod>("standard-with-fallback");
 
   // --- Server Management ---
 
@@ -337,6 +346,9 @@ function AiSettings() {
     if (savedSettings.numCtx) {
       setNumCtx(savedSettings.numCtx);
     }
+    const savedPipeline = getFromLocalStorage("pipelineSettings", defaultPipelineSettings);
+    setCleaningMethod(savedPipeline.cleaningMethod);
+    setFetchMethod(savedPipeline.fetchMethod);
     setIsInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -402,6 +414,7 @@ function AiSettings() {
         selectedModel.provider === AiProvider.OLLAMA ? numCtx : undefined,
     };
     saveToLocalStorage("aiSettings", settingsToSave);
+    saveToLocalStorage("pipelineSettings", { cleaningMethod, fetchMethod });
     toast({
       variant: "success",
       title: "Saved!",
@@ -683,6 +696,76 @@ function AiSettings() {
             )}
           </div>
         )}
+
+        {/* Pipeline Settings */}
+        <div className="rounded-md border p-3 space-y-4">
+          <Label className="text-sm font-medium">Pipeline Settings</Label>
+
+          <div>
+            <Label className="text-xs text-muted-foreground" htmlFor="cleaning-method">
+              Content Cleaning
+            </Label>
+            <Select
+              value={cleaningMethod}
+              onValueChange={(v) => setCleaningMethod(v as CleaningMethod)}
+            >
+              <SelectTrigger
+                id="cleaning-method"
+                aria-label="Select cleaning method"
+                className="w-[280px]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="readability">
+                    Readability (recommended)
+                  </SelectItem>
+                  <SelectItem value="html-strip">
+                    Basic HTML strip
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Readability extracts the main article content, removing navigation and ads.
+            </p>
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground" htmlFor="fetch-method">
+              Page Fetching
+            </Label>
+            <Select
+              value={fetchMethod}
+              onValueChange={(v) => setFetchMethod(v as FetchMethod)}
+            >
+              <SelectTrigger
+                id="fetch-method"
+                aria-label="Select fetch method"
+                className="w-[280px]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="standard">
+                    Standard fetch only
+                  </SelectItem>
+                  <SelectItem value="standard-with-fallback">
+                    Standard + browser fallback (recommended)
+                  </SelectItem>
+                  <SelectItem value="always-playwright">
+                    Always use browser
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Browser fallback handles JavaScript-rendered pages. Requires Chromium installed.
+            </p>
+          </div>
+        </div>
 
         {/* Save Button */}
         <Button

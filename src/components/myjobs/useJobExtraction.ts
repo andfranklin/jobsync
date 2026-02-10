@@ -208,16 +208,24 @@ export function useJobExtraction({
     });
   };
 
+  const getPipelineSettings = () => {
+    return getFromLocalStorage("pipelineSettings", {
+      cleaningMethod: "readability",
+      fetchMethod: "standard-with-fallback",
+    });
+  };
+
   const handleAutoFill = async (url: string) => {
     const selectedModel = getSelectedModel();
     if (!selectedModel) return;
     setIsExtracting(true);
 
     try {
+      const pipelineSettings = getPipelineSettings();
       const res = await fetch("/api/ai/job/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, selectedModel }),
+        body: JSON.stringify({ url, selectedModel, pipelineSettings }),
       });
       await processExtractResponse(res);
     } catch {
@@ -237,10 +245,11 @@ export function useJobExtraction({
     setIsExtracting(true);
 
     try {
+      const pipelineSettings = getPipelineSettings();
       const res = await fetch("/api/ai/job/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ htmlContent: pasteContent, selectedModel }),
+        body: JSON.stringify({ htmlContent: pasteContent, selectedModel, pipelineSettings }),
       });
       await processExtractResponse(res);
     } catch {
