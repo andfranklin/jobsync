@@ -10,8 +10,10 @@ import {
   preprocessResume,
 } from "@/lib/ai";
 import { authenticateAndRateLimit, handleAiError } from "@/lib/ai/route-helpers";
+import { createPipelineRun, updatePipelineRunCleaned, updatePipelineRunFailed } from "@/lib/ai/pipeline";
 import { Resume } from "@/models/profile.model";
 import { AiModel } from "@/models/ai.model";
+import type { PipelineConfig } from "@/models/pipeline.model";
 
 /**
  * Resume Review Endpoint
@@ -33,6 +35,9 @@ export const POST = async (req: NextRequest) => {
     );
   }
 
+  const modelName = selectedModel.model || "llama3.2";
+  let pipelineRunId: string | undefined;
+
   try {
     const preprocessResult = await preprocessResume(resume);
     if (!preprocessResult.success) {
@@ -46,9 +51,30 @@ export const POST = async (req: NextRequest) => {
     }
     const { normalizedText } = preprocessResult.data;
 
+    const pipelineConfig: PipelineConfig = {
+      cleaner: "html-strip",
+      model: modelName,
+      provider: selectedModel.provider,
+      numCtx: selectedModel.numCtx ?? 8192,
+      temperature: 0.3,
+      maxInputChars: normalizedText.length,
+    };
+
+    try {
+      const run = await createPipelineRun({
+        resumeId: resume.id,
+        rawContent: JSON.stringify(resume),
+        config: pipelineConfig,
+      });
+      pipelineRunId = run.id;
+      updatePipelineRunCleaned(run.id, normalizedText).catch(() => {});
+    } catch {
+      // Pipeline tracking is best-effort
+    }
+
     const model = getModel(
       selectedModel.provider,
-      selectedModel.model || "llama3.2",
+      modelName,
       selectedModel.numCtx,
     );
 
@@ -65,6 +91,10 @@ export const POST = async (req: NextRequest) => {
 
     return result.toTextStreamResponse();
   } catch (error) {
+    if (pipelineRunId) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      updatePipelineRunFailed(pipelineRunId, message).catch(() => {});
+    }
     return handleAiError(error, selectedModel.provider);
   }
 };

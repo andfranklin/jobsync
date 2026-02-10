@@ -42,18 +42,25 @@ export const RETRY = {
 } as const;
 
 // TEXT LIMITS (for prompts)
-export const TEXT_LIMITS = {
-  /** Character limit for Ollama (local models) */
-  OLLAMA: {
-    RESUME: 1500,
-    JOB: 1200,
-  },
-  /** Character limit for cloud providers */
-  CLOUD: {
-    RESUME: 4000,
-    JOB: 3500,
-  },
-} as const;
+// Cloud providers have large context windows; use a generous fixed limit
+const CLOUD_MAX_CHARS = 30000;
+
+/**
+ * Compute the maximum input character count based on provider and context size.
+ * For Ollama, reserves ~30% of the context for system prompt + output,
+ * then estimates ~3 chars per token.
+ * For cloud providers, returns a generous fixed limit.
+ */
+export function getTextLimit(
+  provider: string,
+  numCtx: number = 8192,
+): number {
+  if (provider === "ollama") {
+    const usableTokens = Math.floor(numCtx * 0.7);
+    return usableTokens * 3;
+  }
+  return CLOUD_MAX_CHARS;
+}
 
 // SCORE VARIANCE
 export const SCORE_VARIANCE = {

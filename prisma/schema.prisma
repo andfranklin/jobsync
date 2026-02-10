@@ -47,6 +47,7 @@ model Resume {
   File           File?           @relation(fields: [FileId], references: [id])
   FileId         String?         @unique
   Job            Job[]
+  PipelineRuns   PipelineRun[]
 }
 
 model File {
@@ -238,8 +239,9 @@ model Job {
   salaryMax   Int?
   Locations   Location[]
   Interview   Interview[]
-  Resume      Resume?     @relation(fields: [resumeId], references: [id])
-  resumeId    String?
+  Resume       Resume?       @relation(fields: [resumeId], references: [id])
+  resumeId     String?
+  PipelineRuns PipelineRun[]
 }
 
 model ActivityType {
@@ -299,4 +301,27 @@ model Task {
   @@index([userId, status])
   @@index([userId, activityTypeId])
   @@index([userId, dueDate])
+}
+
+model PipelineRun {
+  id             String   @id @default(uuid())
+  jobId          String?
+  resumeId       String?
+  sourceUrl      String?
+  rawContent     String
+  cleanedContent String
+  extractedData  String?
+  configHash     String
+  pipelineConfig String
+  status         String
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  Job    Job?    @relation(fields: [jobId], references: [id])
+  Resume Resume? @relation(fields: [resumeId], references: [id])
+
+  @@index([jobId])
+  @@index([resumeId])
+  @@index([configHash])
 }

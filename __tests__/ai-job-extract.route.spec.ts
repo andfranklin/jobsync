@@ -27,7 +27,9 @@ jest.mock("@/lib/ai", () => ({
   JOB_EXTRACT_SYSTEM_PROMPT: "mock system prompt",
   buildJobExtractPrompt: jest.fn((text: string) => `extract: ${text}`),
   extractTextFromHtml: jest.fn((html: string) => {
-    // Simple mock: strip tags, return text
+    return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  }),
+  extractMainContent: jest.fn((html: string) => {
     return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   }),
   AIUnavailableError: class AIUnavailableError extends Error {

@@ -4,6 +4,9 @@
  * Extracted from preprocessing.ts to enable code reuse
  */
 
+import { Readability } from "@mozilla/readability";
+import { JSDOM } from "jsdom";
+
 // HTML AND WHITESPACE NORMALIZATION
 
 export const removeHtmlTags = (description: string | undefined): string => {
@@ -106,6 +109,45 @@ export const extractTextFromHtml = (html: string): string => {
 
   // Combine: JSON-LD first (structured data), then page text
   return jsonLdText ? `${jsonLdText}\n${htmlText}`.trim() : htmlText;
+};
+
+// READABILITY-BASED CONTENT EXTRACTION
+
+/**
+ * Extracts the main content from HTML using Mozilla Readability.
+ * Removes navigation, footers, ads, and other non-content elements.
+ * Falls back to extractTextFromHtml() if Readability can't find main content.
+ *
+ * Also preserves JSON-LD structured data (Schema.org JobPosting, etc.)
+ * since Readability strips <script> tags.
+ */
+export const extractMainContent = (html: string): string => {
+  if (!html) return "";
+
+  // Extract JSON-LD before Readability strips scripts
+  const jsonLdBlocks: string[] = [];
+  const jsonLdRegex =
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = jsonLdRegex.exec(html)) !== null) {
+    jsonLdBlocks.push(match[1].trim());
+  }
+  const jsonLdText = jsonLdBlocks.join("\n");
+
+  try {
+    const dom = new JSDOM(html, { url: "https://example.com" });
+    const reader = new Readability(dom.window.document);
+    const article = reader.parse();
+
+    if (article && article.textContent && article.textContent.trim().length > 100) {
+      const cleaned = normalizeWhitespace(article.textContent);
+      return jsonLdText ? `${jsonLdText}\n${cleaned}`.trim() : cleaned;
+    }
+  } catch {
+    // Readability failed — fall through to basic extraction
+  }
+
+  return extractTextFromHtml(html);
 };
 
 // VALIDATION HELPERS

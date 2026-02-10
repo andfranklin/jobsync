@@ -11,9 +11,11 @@ import {
   preprocessJob,
 } from "@/lib/ai";
 import { authenticateAndRateLimit, handleAiError } from "@/lib/ai/route-helpers";
+import { createPipelineRun, updatePipelineRunCleaned, updatePipelineRunFailed } from "@/lib/ai/pipeline";
 import { getResumeById } from "@/actions/profile.actions";
 import { getJobDetails } from "@/actions/job.actions";
 import { AiModel } from "@/models/ai.model";
+import type { PipelineConfig } from "@/models/pipeline.model";
 
 /**
  * Job Match Endpoint
@@ -35,6 +37,9 @@ export const POST = async (req: NextRequest) => {
       { status: 400 },
     );
   }
+
+  const modelName = selectedModel.model || "llama3.2";
+  let pipelineRunId: string | undefined;
 
   try {
     const [{ data: resume }, { job }] = await Promise.all([
@@ -71,9 +76,32 @@ export const POST = async (req: NextRequest) => {
     const { normalizedText: resumeText } = resumePreprocessResult.data;
     const { normalizedText: jobText } = jobPreprocessResult.data;
 
+    const combinedInput = `--- RESUME ---\n${resumeText}\n--- JOB ---\n${jobText}`;
+    const pipelineConfig: PipelineConfig = {
+      cleaner: "html-strip",
+      model: modelName,
+      provider: selectedModel.provider,
+      numCtx: selectedModel.numCtx ?? 8192,
+      temperature: 0.3,
+      maxInputChars: combinedInput.length,
+    };
+
+    try {
+      const run = await createPipelineRun({
+        resumeId,
+        jobId,
+        rawContent: combinedInput,
+        config: pipelineConfig,
+      });
+      pipelineRunId = run.id;
+      updatePipelineRunCleaned(run.id, combinedInput).catch(() => {});
+    } catch {
+      // Pipeline tracking is best-effort
+    }
+
     const model = getModel(
       selectedModel.provider,
-      selectedModel.model || "llama3.2",
+      modelName,
       selectedModel.numCtx,
     );
 
@@ -90,6 +118,10 @@ export const POST = async (req: NextRequest) => {
 
     return result.toTextStreamResponse();
   } catch (error) {
+    if (pipelineRunId) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      updatePipelineRunFailed(pipelineRunId, message).catch(() => {});
+    }
     return handleAiError(error, selectedModel.provider);
   }
 };

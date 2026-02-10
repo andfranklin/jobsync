@@ -6,14 +6,23 @@ import { getModel } from "@/lib/ai/providers";
 import {
   JOB_EXTRACT_SYSTEM_PROMPT,
   buildJobExtractPrompt,
+  extractMainContent,
   extractTextFromHtml,
 } from "@/lib/ai";
 import { authenticateAndRateLimit, handleAiError } from "@/lib/ai/route-helpers";
+import {
+  createPipelineRun,
+  updatePipelineRunCleaned,
+  updatePipelineRunExtracted,
+  updatePipelineRunFailed,
+} from "@/lib/ai/pipeline";
 import { JobExtractionSchema } from "@/models/jobExtraction.schema";
 import { AiModel } from "@/models/ai.model";
+import type { PipelineConfig } from "@/models/pipeline.model";
+import { getTextLimit } from "@/lib/ai/config";
 
-const MAX_TEXT_LENGTH = 15000;
 const FETCH_TIMEOUT_MS = 15000;
+const EXTRACTION_TEMPERATURE = 0.1;
 
 /**
  * Job Extraction Endpoint
@@ -56,11 +65,27 @@ export const POST = async (req: NextRequest) => {
     }
   }
 
+  const modelName = selectedModel.model || "llama3.2";
+  const numCtx = selectedModel.numCtx ?? 8192;
+  const maxTextLength = getTextLimit(selectedModel.provider, numCtx);
+  const pipelineConfig: PipelineConfig = {
+    cleaner: htmlContent ? "html-strip" : "readability",
+    model: modelName,
+    provider: selectedModel.provider,
+    numCtx,
+    temperature: EXTRACTION_TEMPERATURE,
+    maxInputChars: maxTextLength,
+  };
+
+  let pipelineRunId: string | undefined;
+
   try {
+    let rawContent: string;
     let pageText: string;
 
     if (htmlContent) {
       // User pasted content directly — skip URL fetch
+      rawContent = htmlContent;
       pageText = extractTextFromHtml(htmlContent);
     } else {
       // Fetch the webpage
@@ -109,11 +134,26 @@ export const POST = async (req: NextRequest) => {
         );
       }
 
-      const html = await response.text();
-      pageText = extractTextFromHtml(html);
+      rawContent = await response.text();
+      pageText = extractMainContent(rawContent);
+    }
+
+    // Create pipeline run once we have raw content
+    try {
+      const run = await createPipelineRun({
+        sourceUrl: url,
+        rawContent,
+        config: pipelineConfig,
+      });
+      pipelineRunId = run.id;
+    } catch {
+      // Pipeline tracking is best-effort — don't block extraction
     }
 
     if (pageText.length < 100) {
+      if (pipelineRunId) {
+        updatePipelineRunFailed(pipelineRunId, "Extracted text too short").catch(() => {});
+      }
       return NextResponse.json(
         {
           error: htmlContent
@@ -125,14 +165,19 @@ export const POST = async (req: NextRequest) => {
     }
 
     // Truncate to fit context window
-    if (pageText.length > MAX_TEXT_LENGTH) {
-      pageText = pageText.substring(0, MAX_TEXT_LENGTH);
+    if (pageText.length > maxTextLength) {
+      pageText = pageText.substring(0, maxTextLength);
+    }
+
+    // Update pipeline with cleaned content
+    if (pipelineRunId) {
+      updatePipelineRunCleaned(pipelineRunId, pageText).catch(() => {});
     }
 
     // Call AI for extraction
     const model = getModel(
       selectedModel.provider,
-      selectedModel.model || "llama3.2",
+      modelName,
       selectedModel.numCtx,
     );
 
@@ -141,11 +186,20 @@ export const POST = async (req: NextRequest) => {
       schema: JobExtractionSchema,
       system: JOB_EXTRACT_SYSTEM_PROMPT,
       prompt: buildJobExtractPrompt(pageText),
-      temperature: 0.1,
+      temperature: EXTRACTION_TEMPERATURE,
     });
+
+    // Update pipeline with extracted data
+    if (pipelineRunId) {
+      updatePipelineRunExtracted(pipelineRunId, result.object).catch(() => {});
+    }
 
     return NextResponse.json(result.object);
   } catch (error) {
+    if (pipelineRunId) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      updatePipelineRunFailed(pipelineRunId, message).catch(() => {});
+    }
     return handleAiError(error, selectedModel.provider);
   }
 };

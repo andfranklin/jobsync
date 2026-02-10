@@ -45,8 +45,12 @@ export {
   normalizeHeadings,
   extractMetadata,
   extractTextFromHtml,
+  extractMainContent,
   validateText,
   type TextMetadata,
 } from "./tools/text-processing";
 
 export { checkRateLimit } from "./rate-limiter";
+
+// Configuration
+export { getTextLimit } from "./config";

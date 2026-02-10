@@ -1,3 +1,7 @@
+// Mock jsdom and Readability since these tests only cover basic HTML stripping
+jest.mock("jsdom", () => ({ JSDOM: jest.fn() }));
+jest.mock("@mozilla/readability", () => ({ Readability: jest.fn() }));
+
 import {
   extractTextFromHtml,
   removeHtmlTags,
