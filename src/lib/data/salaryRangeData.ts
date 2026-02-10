@@ -25,4 +25,12 @@ export const SALARY_VALUES = [
   { value: 280000, label: "$280,000" },
   { value: 290000, label: "$290,000" },
   { value: 300000, label: "$300,000" },
+  { value: 325000, label: "$325,000" },
+  { value: 350000, label: "$350,000" },
+  { value: 375000, label: "$375,000" },
+  { value: 400000, label: "$400,000" },
+  { value: 425000, label: "$425,000" },
+  { value: 450000, label: "$450,000" },
+  { value: 475000, label: "$475,000" },
+  { value: 500000, label: "$500,000" },
 ];

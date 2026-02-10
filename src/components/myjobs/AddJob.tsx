@@ -247,7 +247,7 @@ export function AddJob({
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4"
+                className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6"
               >
                 {/* Job URL */}
                 <div className="md:col-span-2">
