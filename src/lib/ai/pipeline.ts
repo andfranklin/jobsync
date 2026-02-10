@@ -1,8 +1,13 @@
 import "server-only";
 
+import { createHash } from "crypto";
 import prisma from "@/lib/db";
 import type { PipelineConfig, PipelineStatus } from "@/models/pipeline.model";
-import { hashPipelineConfig } from "@/models/pipeline.model";
+
+export function hashPipelineConfig(config: PipelineConfig): string {
+  const canonical = JSON.stringify(config, Object.keys(config).sort());
+  return createHash("sha256").update(canonical).digest("hex");
+}
 
 interface CreatePipelineRunParams {
   jobId?: string;

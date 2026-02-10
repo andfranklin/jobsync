@@ -1,4 +1,3 @@
-import { createHash } from "crypto";
 import type { AiProvider } from "./ai.model";
 
 export interface PipelineConfig {
@@ -24,8 +23,3 @@ export const defaultPipelineSettings: PipelineSettings = {
   cleaningMethod: "readability",
   fetchMethod: "standard-with-fallback",
 };
-
-export function hashPipelineConfig(config: PipelineConfig): string {
-  const canonical = JSON.stringify(config, Object.keys(config).sort());
-  return createHash("sha256").update(canonical).digest("hex");
-}

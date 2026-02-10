@@ -8,7 +8,7 @@ import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { hashPipelineConfig } from "@/models/pipeline.model";
+import { hashPipelineConfig } from "@/lib/ai/pipeline";
 import type { PipelineConfig } from "@/models/pipeline.model";
 import type { AiProvider } from "@/models/ai.model";
 import { getTextLimit } from "@/lib/ai/config";
