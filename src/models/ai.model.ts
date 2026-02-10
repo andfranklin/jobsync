@@ -17,6 +17,7 @@ export { ResumeReviewSchema, JobMatchSchema } from "./ai.schemas";
 export interface AiModel {
   provider: AiProvider;
   model: string | undefined;
+  numCtx?: number;
 }
 
 // Provider enum - extensible for future providers

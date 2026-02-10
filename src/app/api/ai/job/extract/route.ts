@@ -133,6 +133,7 @@ export const POST = async (req: NextRequest) => {
     const model = getModel(
       selectedModel.provider,
       selectedModel.model || "llama3.2",
+      selectedModel.numCtx,
     );
 
     const result = await generateObject({

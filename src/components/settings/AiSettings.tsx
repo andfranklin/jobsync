@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
   AiModel,
@@ -18,27 +18,35 @@ import {
 } from "../ui/select";
 import { Label } from "../ui/label";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Progress } from "../ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
 import {
   getFromLocalStorage,
   saveToLocalStorage,
 } from "@/utils/localstorage.utils";
 import { toast } from "../ui/use-toast";
-import { XCircle, CheckCircle } from "lucide-react";
-import { checkIfModelIsRunning } from "@/utils/ai.utils";
-
-interface OllamaModelResponse {
-  models: {
-    name: string;
-    model: string;
-  }[];
-}
-
-interface OllamaRunningModelResponse {
-  models: {
-    name: string;
-    model: string;
-  }[];
-}
+import {
+  XCircle,
+  CheckCircle,
+  Loader2,
+  Trash2,
+  Download,
+  Square,
+  Power,
+  PowerOff,
+} from "lucide-react";
+import { PullProgress } from "@/utils/ai.utils";
 
 interface DeepseekModelResponse {
   object: string;
@@ -49,49 +57,293 @@ interface DeepseekModelResponse {
   }[];
 }
 
+type ServerStatus = "unknown" | "running" | "stopped" | "starting" | "stopping";
+
 function AiSettings() {
   const [selectedModel, setSelectedModel] = useState<AiModel>(defaultModel);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [deepseekModels, setDeepseekModels] = useState<string[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [fetchError, setFetchError] = useState<string>("");
-  const [runningModelError, setRunningModelError] = useState<string>("");
-  const [runningModelName, setRunningModelName] = useState<string>("");
+  const [fetchError, setFetchError] = useState("");
+  const [runningModelError, setRunningModelError] = useState("");
+  const [runningModelName, setRunningModelName] = useState("");
+
+  // Server status
+  const [serverStatus, setServerStatus] = useState<ServerStatus>("unknown");
+  const [serverPort, setServerPort] = useState<number>(11435);
+
+  // Model loading
+  const [isLoadingModel, setIsLoadingModel] = useState(false);
+
+  // Pull model
+  const [pullModelName, setPullModelName] = useState("");
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullProgress, setPullProgress] = useState(0);
+  const [pullStatus, setPullStatusText] = useState("");
+  const pullAbortRef = useRef<AbortController | null>(null);
+
+  // Context length
+  const CONTEXT_LENGTH_OPTIONS = [4096, 8192, 16384, 32768];
+  const [numCtx, setNumCtx] = useState(8192);
+
+  // --- Server Management ---
+
+  const checkServerStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/ollama/status");
+      const data = await res.json();
+      setServerStatus(data.running ? "running" : "stopped");
+      setServerPort(data.port);
+    } catch {
+      setServerStatus("unknown");
+    }
+  }, []);
+
+  const handleStartServer = async () => {
+    setServerStatus("starting");
+    try {
+      const res = await fetch("/api/ollama/start", { method: "POST" });
+      if (res.ok) {
+        setServerStatus("running");
+        fetchOllamaModels();
+      } else {
+        const data = await res.json();
+        toast({
+          variant: "destructive",
+          title: "Failed to start Ollama",
+          description: data.error,
+        });
+        setServerStatus("stopped");
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Failed to start Ollama",
+        description: "Network error.",
+      });
+      setServerStatus("stopped");
+    }
+  };
+
+  const handleStopServer = async () => {
+    setServerStatus("stopping");
+    try {
+      await fetch("/api/ollama/stop", { method: "POST" });
+      setServerStatus("stopped");
+      setRunningModelName("");
+    } catch {
+      setServerStatus("unknown");
+    }
+  };
+
+  // --- Model Management ---
+
+  const fetchOllamaModels = async () => {
+    setIsLoadingModels(true);
+    setFetchError("");
+    try {
+      const { fetchInstalledModels } = await import("@/utils/ai.utils");
+      const result = await fetchInstalledModels();
+      if (result.error) {
+        setFetchError(result.error);
+      } else {
+        setOllamaModels(result.models);
+      }
+      // Check for running model
+      await fetchRunningModel();
+    } catch (error) {
+      console.error("Error fetching Ollama models:", error);
+      setFetchError("Failed to fetch Ollama models.");
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  const fetchRunningModel = async () => {
+    setRunningModelError("");
+    setRunningModelName("");
+    try {
+      const { fetchRunningModels } = await import("@/utils/ai.utils");
+      const result = await fetchRunningModels();
+      if (result.models.length > 0) {
+        const name = result.models[0];
+        setRunningModelName(name);
+        setSelectedModel((prev) => ({
+          ...prev,
+          provider: AiProvider.OLLAMA,
+          model: name,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching running model:", error);
+    }
+  };
+
+  const handleLoadModel = async (modelName: string) => {
+    setIsLoadingModel(true);
+    setRunningModelError("");
+    setRunningModelName("");
+    try {
+      const { loadOllamaModel } = await import("@/utils/ai.utils");
+      const result = await loadOllamaModel(modelName);
+      if (result.success) {
+        setRunningModelName(modelName);
+      } else {
+        setRunningModelError(result.error || "Failed to load model");
+      }
+    } catch {
+      setRunningModelError("Failed to load model");
+    } finally {
+      setIsLoadingModel(false);
+    }
+  };
+
+  const handleUnloadModel = async () => {
+    if (!runningModelName) return;
+    try {
+      const { unloadOllamaModel } = await import("@/utils/ai.utils");
+      await unloadOllamaModel(runningModelName);
+      setRunningModelName("");
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to unload model.",
+      });
+    }
+  };
+
+  const handleDeleteModel = async (modelName: string) => {
+    try {
+      // Unload first if running
+      if (runningModelName === modelName) {
+        const { unloadOllamaModel } = await import("@/utils/ai.utils");
+        await unloadOllamaModel(modelName);
+        setRunningModelName("");
+      }
+      const { deleteOllamaModel } = await import("@/utils/ai.utils");
+      const result = await deleteOllamaModel(modelName);
+      if (result.success) {
+        setOllamaModels((prev) => prev.filter((m) => m !== modelName));
+        if (selectedModel.model === modelName) {
+          setSelectedModel((prev) => ({ ...prev, model: undefined }));
+        }
+        toast({
+          variant: "success",
+          description: `${modelName} deleted.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Delete failed",
+          description: result.error,
+        });
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete model.",
+      });
+    }
+  };
+
+  // --- Pull Model ---
+
+  const handlePullModel = async () => {
+    if (!pullModelName.trim()) return;
+    setIsPulling(true);
+    setPullProgress(0);
+    setPullStatusText("Starting download...");
+    pullAbortRef.current = new AbortController();
+
+    try {
+      const { pullOllamaModel } = await import("@/utils/ai.utils");
+      const result = await pullOllamaModel(
+        pullModelName.trim(),
+        (progress: PullProgress) => {
+          setPullStatusText(progress.status);
+          if (progress.total && progress.completed) {
+            setPullProgress(
+              Math.round((progress.completed / progress.total) * 100),
+            );
+          }
+        },
+        pullAbortRef.current.signal,
+      );
+
+      if (result.success) {
+        toast({
+          variant: "success",
+          description: `${pullModelName.trim()} downloaded successfully.`,
+        });
+        setPullModelName("");
+        // Refresh models list
+        await fetchOllamaModels();
+        // Auto-select and load the new model
+        const name = pullModelName.trim();
+        setSelectedModel((prev) => ({ ...prev, model: name }));
+        await handleLoadModel(name);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Pull failed",
+          description: result.error,
+        });
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Pull failed",
+        description: "Network error.",
+      });
+    } finally {
+      setIsPulling(false);
+      setPullProgress(0);
+      setPullStatusText("");
+      pullAbortRef.current = null;
+    }
+  };
+
+  const handleCancelPull = () => {
+    pullAbortRef.current?.abort();
+  };
+
+  // --- Model Selection ---
 
   const setSelectedProvider = (provider: AiProvider) => {
-    setSelectedModel({ provider, model: undefined });
+    setSelectedModel((prev) => ({ ...prev, provider, model: undefined }));
     setFetchError("");
     setRunningModelError("");
     setRunningModelName("");
   };
+
   const setSelectedProviderModel = async (model: string) => {
-    setSelectedModel({ ...selectedModel, model });
+    setSelectedModel((prev) => ({ ...prev, model }));
     setRunningModelName("");
     setRunningModelError("");
 
-    // Check if the selected model is running (only for Ollama)
     if (selectedModel.provider === AiProvider.OLLAMA) {
-      const result = await checkIfModelIsRunning(model, selectedModel.provider);
-      if (result.isRunning && result.runningModelName) {
-        setRunningModelName(result.runningModelName);
-        // Keep the model alive indefinitely
-        await keepModelAlive(result.runningModelName);
-      } else if (result.error) {
-        setRunningModelError(result.error);
-      }
+      await handleLoadModel(model);
     }
   };
+
+  // --- Lifecycle ---
 
   useEffect(() => {
     const savedSettings = getFromLocalStorage("aiSettings", selectedModel);
     setSelectedModel(savedSettings);
+    if (savedSettings.numCtx) {
+      setNumCtx(savedSettings.numCtx);
+    }
     setIsInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (isInitialized && selectedModel.provider === AiProvider.OLLAMA) {
+      checkServerStatus();
       fetchOllamaModels();
     }
     if (isInitialized && selectedModel.provider === AiProvider.DEEPSEEK) {
@@ -100,115 +352,13 @@ function AiSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModel.provider, isInitialized]);
 
-  const fetchOllamaModels = async () => {
-    setIsLoadingModels(true);
-    setFetchError("");
-    try {
-      const response = await fetch("http://localhost:11434/api/tags");
-      if (!response.ok) {
-        if (selectedModel.provider === AiProvider.OLLAMA) {
-          setFetchError(
-            "Failed to fetch Ollama models. Make sure Ollama is running.",
-          );
-        }
-        return;
-      }
-      const data: OllamaModelResponse = await response.json();
-      const modelNames = data.models.map((model) => model.name);
-      setOllamaModels(modelNames);
-
-      // Fetch and auto-select running model
-      await fetchRunningModel();
-    } catch (error) {
-      console.error("Error fetching Ollama models:", error);
-      if (selectedModel.provider === AiProvider.OLLAMA) {
-        setFetchError(
-          "Failed to fetch Ollama models. Make sure Ollama is running.",
-        );
-      }
-    } finally {
-      setIsLoadingModels(false);
-    }
-  };
-
-  const keepModelAlive = async (modelName: string) => {
-    try {
-      // Send a request to keep the model loaded for 1 hour
-      await fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: modelName,
-          prompt: "",
-          keep_alive: "1h", // Keep loaded for 1 hour
-          stream: false,
-        }),
-      });
-    } catch (error) {
-      console.error("Error keeping model alive:", error);
-    }
-  };
-
-  const fetchRunningModel = async () => {
-    setRunningModelError("");
-    setRunningModelName("");
-    try {
-      const response = await fetch("http://localhost:11434/api/ps");
-      if (!response.ok) {
-        if (selectedModel.provider === AiProvider.OLLAMA) {
-          setRunningModelError(
-            "No model is currently running. Please start a model first.",
-          );
-        }
-        return;
-      }
-      const data: OllamaRunningModelResponse = await response.json();
-      if (data.models && data.models.length > 0) {
-        // Auto-select the first running model
-        const runningModelName = data.models[0].name;
-        setSelectedModel({
-          provider: AiProvider.OLLAMA,
-          model: runningModelName,
-        });
-        // Verify the model is running using shared utility
-        const result = await checkIfModelIsRunning(
-          runningModelName,
-          AiProvider.OLLAMA,
-        );
-        if (result.isRunning && result.runningModelName) {
-          setRunningModelName(result.runningModelName);
-          await keepModelAlive(result.runningModelName);
-        } else if (result.error) {
-          setRunningModelError(result.error);
-        }
-      } else {
-        if (selectedModel.provider === AiProvider.OLLAMA) {
-          setRunningModelError(
-            "No model is currently running. Please run the ollama model first.",
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching running model:", error);
-      if (selectedModel.provider === AiProvider.OLLAMA) {
-        setRunningModelError(
-          "No model is currently running. Please run the ollama model first.",
-        );
-      }
-    }
-  };
-
   const fetchDeepseekModels = async () => {
     setIsLoadingModels(true);
     setFetchError("");
     try {
       const response = await fetch("/api/ai/deepseek/models");
       if (!response.ok) {
-        // Fall back to enum models if API fails
-        const fallbackModels = Object.values(DeepseekModel);
-        setDeepseekModels(fallbackModels);
+        setDeepseekModels(Object.values(DeepseekModel));
         return;
       }
       const data: DeepseekModelResponse = await response.json();
@@ -218,7 +368,6 @@ function AiSettings() {
       );
     } catch (error) {
       console.error("Error fetching DeepSeek models:", error);
-      // Fall back to enum models if API fails
       setDeepseekModels(Object.values(DeepseekModel));
     } finally {
       setIsLoadingModels(false);
@@ -237,6 +386,7 @@ function AiSettings() {
         return [];
     }
   };
+
   const saveModelSettings = () => {
     if (!selectedModel.model) {
       toast({
@@ -246,19 +396,28 @@ function AiSettings() {
       });
       return;
     }
-    saveToLocalStorage("aiSettings", selectedModel);
+    const settingsToSave: AiModel = {
+      ...selectedModel,
+      numCtx:
+        selectedModel.provider === AiProvider.OLLAMA ? numCtx : undefined,
+    };
+    saveToLocalStorage("aiSettings", settingsToSave);
     toast({
       variant: "success",
       title: "Saved!",
       description: "AI Settings saved successfully.",
     });
   };
+
+  const isOllama = selectedModel.provider === AiProvider.OLLAMA;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>AI Settings</CardTitle>
       </CardHeader>
-      <CardContent className="ml-4">
+      <CardContent className="ml-4 space-y-6">
+        {/* Provider Selection */}
         <div>
           <Label className="my-4" htmlFor="ai-provider">
             AI Service Provider
@@ -285,6 +444,63 @@ function AiSettings() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Ollama Server Status */}
+        {isOllama && (
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    serverStatus === "running"
+                      ? "bg-green-500"
+                      : serverStatus === "starting" ||
+                          serverStatus === "stopping"
+                        ? "bg-yellow-500 animate-pulse"
+                        : "bg-red-500"
+                  }`}
+                />
+                <span className="text-sm font-medium">
+                  {serverStatus === "running"
+                    ? `Ollama running on port ${serverPort}`
+                    : serverStatus === "starting"
+                      ? "Starting..."
+                      : serverStatus === "stopping"
+                        ? "Stopping..."
+                        : "Ollama not running"}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {serverStatus !== "running" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStartServer}
+                    disabled={
+                      serverStatus === "starting" ||
+                      serverStatus === "stopping"
+                    }
+                  >
+                    <Power className="h-3.5 w-3.5 mr-1" />
+                    Start
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStopServer}
+                    disabled={serverStatus === "stopping"}
+                  >
+                    <PowerOff className="h-3.5 w-3.5 mr-1" />
+                    Stop
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Model Selection */}
         <div>
           <Label className="my-4" htmlFor="ai-model">
             Model
@@ -293,12 +509,12 @@ function AiSettings() {
             <Select
               value={selectedModel.model}
               onValueChange={setSelectedProviderModel}
-              disabled={isLoadingModels}
+              disabled={isLoadingModels || (isOllama && serverStatus !== "running")}
             >
               <SelectTrigger
                 id="ai-model"
                 aria-label="Select Model"
-                className="w-[180px]"
+                className="w-[220px]"
               >
                 <SelectValue
                   placeholder={
@@ -316,34 +532,166 @@ function AiSettings() {
                 </SelectGroup>
               </SelectContent>
             </Select>
-            {fetchError && (
-              <div className="flex items-center gap-1 text-red-600 text-sm mt-2">
-                <XCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{fetchError}</span>
-              </div>
+
+            {/* Delete model button (Ollama only) */}
+            {isOllama && selectedModel.model && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete model?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove{" "}
+                      <strong>{selectedModel.model}</strong> from disk. You can
+                      re-download it later.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => handleDeleteModel(selectedModel.model!)}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
-          {runningModelName && (
-            <div className="flex items-center gap-1 text-green-600 text-sm mt-2">
-              <CheckCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{runningModelName} is running</span>
+
+          {fetchError && (
+            <div className="flex items-center gap-1 text-red-600 text-sm mt-2">
+              <XCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{fetchError}</span>
             </div>
           )}
-          {runningModelError && (
+
+          {/* Model status indicators */}
+          {isLoadingModel && (
+            <div className="flex items-center gap-1 text-yellow-600 text-sm mt-2">
+              <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+              <span>Loading {selectedModel.model}...</span>
+            </div>
+          )}
+          {!isLoadingModel && runningModelName && (
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-1 text-green-600 text-sm">
+                <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{runningModelName} is loaded</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-muted-foreground"
+                onClick={handleUnloadModel}
+              >
+                <Square className="h-3 w-3 mr-1" />
+                Unload
+              </Button>
+            </div>
+          )}
+          {!isLoadingModel && runningModelError && (
             <div className="flex items-center gap-1 text-red-600 text-sm mt-2">
               <XCircle className="h-4 w-4 flex-shrink-0" />
               <span>{runningModelError}</span>
             </div>
           )}
         </div>
+
+        {/* Context Length (Ollama only) */}
+        {isOllama && (
+          <div>
+            <Label className="my-4" htmlFor="context-length">
+              Context Length
+            </Label>
+            <Select
+              value={String(numCtx)}
+              onValueChange={(v) => setNumCtx(Number(v))}
+            >
+              <SelectTrigger
+                id="context-length"
+                aria-label="Select context length"
+                className="w-[180px]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {CONTEXT_LENGTH_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={String(opt)}>
+                      {opt.toLocaleString()} tokens
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Higher values allow longer inputs but use more memory.
+            </p>
+          </div>
+        )}
+
+        {/* Pull New Model (Ollama only) */}
+        {isOllama && serverStatus === "running" && (
+          <div className="rounded-md border p-3 space-y-2">
+            <Label className="text-sm font-medium">Download New Model</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Model name (e.g. mistral, llama3.1:8b)"
+                value={pullModelName}
+                onChange={(e) => setPullModelName(e.target.value)}
+                disabled={isPulling}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && pullModelName.trim()) {
+                    handlePullModel();
+                  }
+                }}
+              />
+              {!isPulling ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePullModel}
+                  disabled={!pullModelName.trim()}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1" />
+                  Pull
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelPull}
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
+            {isPulling && (
+              <div className="space-y-1">
+                <Progress value={pullProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  {pullStatus}
+                  {pullProgress > 0 && ` (${pullProgress}%)`}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Save Button */}
         <Button
-          className="mt-8"
           onClick={saveModelSettings}
           disabled={
             !selectedModel.model ||
-            (selectedModel.provider === AiProvider.OLLAMA &&
-              !runningModelName) ||
-            isLoadingModels
+            (isOllama && !runningModelName) ||
+            isLoadingModels ||
+            isLoadingModel
           }
         >
           Save

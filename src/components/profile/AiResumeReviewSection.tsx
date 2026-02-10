@@ -1,7 +1,7 @@
 "use client";
 
 import { experimental_useObject as useObject } from "@ai-sdk/react";
-import { Info, Sparkles, CheckCircle, XCircle } from "lucide-react";
+import { Info, Sparkles, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
   Sheet,
@@ -15,7 +15,7 @@ import Loading from "../Loading";
 import { useState } from "react";
 import { toast } from "../ui/use-toast";
 import { Resume } from "@/models/profile.model";
-import { AiModel, defaultModel, ResumeReviewResponse } from "@/models/ai.model";
+import { AiModel, defaultModel } from "@/models/ai.model";
 import { AiResumeReviewResponseContent } from "./AiResumeReviewResponseContent";
 import { getFromLocalStorage } from "@/utils/localstorage.utils";
 import {
@@ -24,7 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { checkIfModelIsRunning } from "@/utils/ai.utils";
+import { useOllamaModelStatus } from "@/utils/useOllamaModelStatus";
 import { ResumeReviewSchema } from "@/models/ai.schemas";
 
 interface AiSectionProps {
@@ -33,15 +33,20 @@ interface AiSectionProps {
 
 const AiResumeReviewSection = ({ resume }: AiSectionProps) => {
   const [aISectionOpen, setAiSectionOpen] = useState(false);
-  const [runningModelName, setRunningModelName] = useState<string>("");
-  const [runningModelError, setRunningModelError] = useState<string>("");
 
   const selectedModel: AiModel = getFromLocalStorage(
     "aiSettings",
     defaultModel
   );
 
-  // Standard single-agent mode
+  const {
+    runningModelName,
+    runningModelError,
+    isLoadingModel,
+    ensureModelLoaded,
+    resetStatus,
+  } = useOllamaModelStatus(selectedModel);
+
   const { object, submit, isLoading, stop } = useObject({
     api: "/api/ai/resume/review",
     schema: ResumeReviewSchema,
@@ -72,25 +77,13 @@ const AiResumeReviewSection = ({ resume }: AiSectionProps) => {
     if (!openState && isLoading) {
       stop();
     } else if (openState && selectedModel.provider === "ollama") {
-      await checkModelStatus();
+      await ensureModelLoaded();
+    }
+    if (!openState) {
+      resetStatus();
     }
   };
 
-  const checkModelStatus = async () => {
-    setRunningModelName("");
-    setRunningModelError("");
-    const result = await checkIfModelIsRunning(
-      selectedModel.model,
-      selectedModel.provider
-    );
-    if (result.isRunning && result.runningModelName) {
-      setRunningModelName(result.runningModelName);
-    } else if (result.error) {
-      setRunningModelError(result.error);
-    }
-  };
-
-  // Check if we have any content to show
   const hasContent = object && (object.scores?.overall !== undefined || object.summary);
 
   return (
@@ -132,13 +125,19 @@ const AiResumeReviewSection = ({ resume }: AiSectionProps) => {
 
           {selectedModel.provider === "ollama" && (
             <>
-              {runningModelName && (
-                <div className="flex items-center gap-1 text-green-600 text-sm mt-4">
-                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{runningModelName} is running</span>
+              {isLoadingModel && (
+                <div className="flex items-center gap-1 text-yellow-600 text-sm mt-4">
+                  <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                  <span>Loading {selectedModel.model}...</span>
                 </div>
               )}
-              {runningModelError && (
+              {!isLoadingModel && runningModelName && (
+                <div className="flex items-center gap-1 text-green-600 text-sm mt-4">
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{runningModelName} is loaded</span>
+                </div>
+              )}
+              {!isLoadingModel && runningModelError && (
                 <div className="flex items-center gap-1 text-red-600 text-sm mt-4">
                   <XCircle className="h-4 w-4 flex-shrink-0" />
                   <span>{runningModelError}</span>
@@ -155,6 +154,7 @@ const AiResumeReviewSection = ({ resume }: AiSectionProps) => {
               onClick={getResumeReview}
               disabled={
                 isLoading ||
+                isLoadingModel ||
                 (selectedModel.provider === "ollama" && !runningModelName)
               }
             >

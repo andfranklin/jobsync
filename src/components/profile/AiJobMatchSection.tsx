@@ -9,7 +9,7 @@ import {
   SheetPortal,
   SheetTitle,
 } from "../ui/sheet";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Resume } from "@/models/profile.model";
 import { toast } from "../ui/use-toast";
 import {
@@ -30,8 +30,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { Info, CheckCircle, XCircle } from "lucide-react";
-import { checkIfModelIsRunning } from "@/utils/ai.utils";
+import { Info, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useOllamaModelStatus } from "@/utils/useOllamaModelStatus";
 import { JobMatchSchema } from "@/models/ai.schemas";
 
 interface AiSectionProps {
@@ -46,17 +46,22 @@ export const AiJobMatchSection = ({
   jobId,
 }: AiSectionProps) => {
   const [selectedResumeId, setSelectedResumeId] = useState<string>();
-  const [runningModelName, setRunningModelName] = useState<string>("");
-  const [runningModelError, setRunningModelError] = useState<string>("");
 
   const selectedModel: AiModel = getFromLocalStorage(
     "aiSettings",
-
     defaultModel,
   );
+
+  const {
+    runningModelName,
+    runningModelError,
+    isLoadingModel,
+    ensureModelLoaded,
+    resetStatus,
+  } = useOllamaModelStatus(selectedModel);
+
   const resumesRef = useRef<Resume[]>([]);
 
-  // Standard single-agent mode
   const { object, submit, isLoading, stop } = useObject({
     api: "/api/ai/resume/match",
     schema: JobMatchSchema,
@@ -94,30 +99,15 @@ export const AiJobMatchSection = ({
     submit({ resumeId, jobId, selectedModel });
   };
 
-  const checkModelStatus = useCallback(async () => {
-    setRunningModelName("");
-    setRunningModelError("");
-    const result = await checkIfModelIsRunning(
-      selectedModel.model,
-      selectedModel.provider,
-    );
-    if (result.isRunning && result.runningModelName) {
-      setRunningModelName(result.runningModelName);
-    } else if (result.error) {
-      setRunningModelError(result.error);
-    }
-  }, [selectedModel.model, selectedModel.provider]);
-
   const onOpenChange = async (openState: boolean) => {
     triggerChange(openState);
     if (!openState && isLoading) {
       stop();
     }
     if (openState && selectedModel.provider === "ollama") {
-      await checkModelStatus();
+      await ensureModelLoaded();
     } else if (!openState) {
-      setRunningModelName("");
-      setRunningModelError("");
+      resetStatus();
       setSelectedResumeId(undefined);
     }
   };
@@ -133,11 +123,10 @@ export const AiJobMatchSection = ({
 
   useEffect(() => {
     if (aISectionOpen && selectedModel.provider === "ollama") {
-      checkModelStatus();
+      ensureModelLoaded();
     }
-  }, [aISectionOpen, selectedModel.provider, checkModelStatus]);
+  }, [aISectionOpen, selectedModel.provider, ensureModelLoaded]);
 
-  // Check if we have any content to show
   const hasContent =
     object && (object.matchScore !== undefined || object.summary);
 
@@ -164,13 +153,19 @@ export const AiJobMatchSection = ({
 
           {selectedModel.provider === "ollama" && (
             <>
-              {runningModelName && (
-                <div className="flex items-center gap-1 text-green-600 text-sm mt-4">
-                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{runningModelName} is running</span>
+              {isLoadingModel && (
+                <div className="flex items-center gap-1 text-yellow-600 text-sm mt-4">
+                  <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                  <span>Loading {selectedModel.model}...</span>
                 </div>
               )}
-              {runningModelError && (
+              {!isLoadingModel && runningModelName && (
+                <div className="flex items-center gap-1 text-green-600 text-sm mt-4">
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{runningModelName} is loaded</span>
+                </div>
+              )}
+              {!isLoadingModel && runningModelError && (
                 <div className="flex items-center gap-1 text-red-600 text-sm mt-4">
                   <XCircle className="h-4 w-4 flex-shrink-0" />
                   <span>{runningModelError}</span>
@@ -186,6 +181,7 @@ export const AiJobMatchSection = ({
                 onValueChange={onSelectResume}
                 disabled={
                   isLoading ||
+                  isLoadingModel ||
                   (selectedModel.provider === "ollama" && !runningModelName)
                 }
               >

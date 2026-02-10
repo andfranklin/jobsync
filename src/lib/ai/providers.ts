@@ -1,13 +1,19 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOllama } from "ollama-ai-provider-v2";
 import { createDeepSeek } from "@ai-sdk/deepseek";
+import { getOllamaBaseUrl } from "@/utils/ai.utils";
 
 export type ProviderType = "openai" | "ollama" | "deepseek";
 
 /**
  * Get a language model instance for the specified provider and model.
+ * For Ollama, numCtx sets the context window size (passed as num_ctx option).
  */
-export function getModel(provider: ProviderType, modelName: string) {
+export function getModel(
+  provider: ProviderType,
+  modelName: string,
+  numCtx?: number,
+) {
   if (provider === "openai") {
     const openai = createOpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -22,10 +28,13 @@ export function getModel(provider: ProviderType, modelName: string) {
     return deepseek(modelName);
   }
 
-  // Use ollama-ai-provider-v2 for Ollama
   const ollama = createOllama({
-    baseURL: (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434") + "/api",
+    baseURL: getOllamaBaseUrl() + "/api",
   });
+
+  if (numCtx) {
+    return ollama.chat(modelName, { options: { num_ctx: numCtx } });
+  }
 
   return ollama(modelName);
 }

@@ -49,6 +49,7 @@ export const POST = async (req: NextRequest) => {
     const model = getModel(
       selectedModel.provider,
       selectedModel.model || "llama3.2",
+      selectedModel.numCtx,
     );
 
     // Single comprehensive LLM call
