@@ -51,6 +51,7 @@ export const POST = async (req: NextRequest) => {
   const latestRun = await prisma.pipelineRun.findFirst({
     where: { jobId },
     orderBy: { createdAt: "desc" },
+    select: { rawContent: true, sourceUrl: true },
   });
 
   if (!latestRun || !latestRun.rawContent) {

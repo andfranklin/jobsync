@@ -382,55 +382,6 @@ export const deleteJobById = async (
   }
 };
 
-export const getLatestPipelineRun = async (jobId: string) => {
-  try {
-    await requireUser();
-    const run = await prisma.pipelineRun.findFirst({
-      where: { jobId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        configHash: true,
-        status: true,
-        createdAt: true,
-        sourceUrl: true,
-      },
-    });
-    return { run, success: true };
-  } catch (error) {
-    return handleError(error, "Failed to fetch pipeline run.");
-  }
-};
-
-export const checkReprocessAvailable = async (
-  jobId: string,
-  currentConfig: PipelineConfig,
-) => {
-  try {
-    await requireUser();
-    const latestRun = await prisma.pipelineRun.findFirst({
-      where: { jobId },
-      orderBy: { createdAt: "desc" },
-      select: { configHash: true, rawContent: true },
-    });
-
-    if (!latestRun || !latestRun.rawContent) {
-      return { available: false, reason: "no-data" as const };
-    }
-
-    const currentHash = hashPipelineConfig(currentConfig);
-    const configChanged = latestRun.configHash !== currentHash;
-
-    return {
-      available: configChanged,
-      reason: configChanged ? ("config-changed" as const) : ("up-to-date" as const),
-      previousHash: latestRun.configHash.substring(0, 8),
-    };
-  } catch {
-    return { available: false, reason: "error" as const };
-  }
-};
-
 export const getJobPipelineInfo = async (
   jobId: string,
   currentSettings?: {

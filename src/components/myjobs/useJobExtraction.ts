@@ -12,6 +12,7 @@ import { addCompany } from "@/actions/company.actions";
 import { createJobTitle } from "@/actions/jobtitle.actions";
 import { getFromLocalStorage } from "@/utils/localstorage.utils";
 import { toast } from "../ui/use-toast";
+import { defaultPipelineSettings } from "@/models/pipeline.model";
 
 type FormValues = z.infer<typeof AddJobFormSchema>;
 
@@ -209,10 +210,7 @@ export function useJobExtraction({
   };
 
   const getPipelineSettings = () => {
-    return getFromLocalStorage("pipelineSettings", {
-      cleaningMethod: "readability",
-      fetchMethod: "standard-with-fallback",
-    });
+    return getFromLocalStorage("pipelineSettings", defaultPipelineSettings);
   };
 
   const handleAutoFill = async (url: string) => {
