@@ -54,7 +54,7 @@ describe("AddCompany Component", () => {
       label: "Test Company",
       value: "test company",
       createdBy: "user-id",
-      logoUrl: "http://example.com/logo.png",
+      careerPageUrl: "https://example.com/careers",
     };
 
     render(
@@ -73,8 +73,8 @@ describe("AddCompany Component", () => {
     const dialog = await screen.findByText(/edit company/i);
     expect(dialog).toBeInTheDocument();
     expect(screen.getByLabelText(/company name/i)).toHaveValue("Test Company");
-    expect(screen.getByLabelText(/company logo url/i)).toHaveValue(
-      "http://example.com/logo.png",
+    expect(screen.getByLabelText(/career page url/i)).toHaveValue(
+      "https://example.com/careers",
     );
   });
 
@@ -95,19 +95,21 @@ describe("AddCompany Component", () => {
     fireEvent.change(companyNameInput, {
       target: { value: "New Test Company" },
     });
-    const companyLogoUrlInput = screen.getByLabelText(/company logo url/i);
-    fireEvent.change(companyLogoUrlInput, {
-      target: { value: "http://example.com/new-logo.png" },
+    const careerPageUrlInput = screen.getByLabelText(/career page url/i);
+    fireEvent.change(careerPageUrlInput, {
+      target: { value: "https://example.com/careers" },
     });
     const saveButton = screen.getByRole("button", { name: /save/i });
     fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(addCompany).toHaveBeenCalledTimes(1);
-      expect(addCompany).toHaveBeenCalledWith({
-        company: "New Test Company",
-        logoUrl: "http://example.com/new-logo.png",
-      });
+      expect(addCompany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          company: "New Test Company",
+          careerPageUrl: "https://example.com/careers",
+        }),
+      );
     });
   });
 
@@ -117,7 +119,7 @@ describe("AddCompany Component", () => {
       label: "Test Company",
       value: "test-company",
       createdBy: "user-id",
-      logoUrl: "http://example.com/logo.png",
+      careerPageUrl: "https://example.com/careers",
     };
 
     render(
@@ -139,9 +141,9 @@ describe("AddCompany Component", () => {
       target: { value: "Edited Test Company" },
     });
 
-    const companyLogoUrlInput = screen.getByLabelText(/company logo url/i);
-    fireEvent.change(companyLogoUrlInput, {
-      target: { value: "http://example.com/edited-logo.png" },
+    const careerPageUrlInput = screen.getByLabelText(/career page url/i);
+    fireEvent.change(careerPageUrlInput, {
+      target: { value: "https://example.com/new-careers" },
     });
 
     const saveButton = screen.getByRole("button", { name: /save/i });
@@ -149,12 +151,14 @@ describe("AddCompany Component", () => {
 
     await waitFor(() => {
       expect(updateCompany).toHaveBeenCalledTimes(1);
-      expect(updateCompany).toHaveBeenCalledWith({
-        id: "company-id",
-        company: "Edited Test Company",
-        logoUrl: "http://example.com/edited-logo.png",
-        createdBy: "user-id",
-      });
+      expect(updateCompany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "company-id",
+          company: "Edited Test Company",
+          careerPageUrl: "https://example.com/new-careers",
+          createdBy: "user-id",
+        }),
+      );
     });
   });
 });

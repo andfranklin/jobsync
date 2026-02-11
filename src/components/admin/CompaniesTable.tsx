@@ -16,9 +16,10 @@ import {
   TableRow,
 } from "../ui/table";
 import { Company } from "@/models/job.model";
-import { MoreHorizontal, Pencil, Trash } from "lucide-react";
+import { ListCollapse, MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { useState } from "react";
 import { deleteCompanyById } from "@/actions/company.actions";
+import Link from "next/link";
 import { toast } from "../ui/use-toast";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
 import { AlertDialog } from "@/models/alertDialog.model";
@@ -105,7 +106,11 @@ function CompaniesTable({
                     src={company.logoUrl || "/images/jobsync-logo.svg"}
                   />
                 </TableCell>
-                <TableCell className="font-medium">{company.label}</TableCell>
+                <TableCell className="font-medium cursor-pointer">
+                  <Link href={`/dashboard/admin/companies/${company.id}`}>
+                    {company.label}
+                  </Link>
+                </TableCell>
                 <TableCell className="font-medium hidden sm:table-cell">
                   {company.value}
                 </TableCell>
@@ -122,6 +127,12 @@ function CompaniesTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem className="cursor-pointer" asChild>
+                        <Link href={`/dashboard/admin/companies/${company.id}`}>
+                          <ListCollapse className="mr-2 h-4 w-4" />
+                          View Details
+                        </Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="cursor-pointer"
                         onClick={() => editCompany(company.id)}

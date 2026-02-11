@@ -24,3 +24,9 @@ export {
   JOB_EXTRACT_SYSTEM_PROMPT,
   buildJobExtractPrompt,
 } from "./job-extract";
+
+// Company Description exports
+export {
+  COMPANY_DESCRIBE_SYSTEM_PROMPT,
+  buildCompanyDescribePrompt,
+} from "./company-describe";

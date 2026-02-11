@@ -4,6 +4,7 @@ import {
   getCompanyById,
   getCompanyList,
   updateCompany,
+  updateCompanyDescription,
 } from "@/actions/company.actions";
 import { getCurrentUser, requireUser } from "@/utils/user.utils";
 import { revalidatePath } from "next/cache";
@@ -113,6 +114,8 @@ describe("Company Actions", () => {
           label: true,
           value: true,
           logoUrl: true,
+          careerPageUrl: true,
+          description: true,
           _count: {
             select: {
               jobsApplied: {
@@ -194,7 +197,9 @@ describe("Company Actions", () => {
   describe("addCompany", () => {
     const validData = {
       company: "New Company",
-      logoUrl: "http://example.com/logo.png",
+      careerPageUrl: "https://example.com/careers",
+      logoUrl: "/images/favicons/new-company.png",
+      description: "<p>A great company.</p>",
     };
 
     it("should create a new company successfully", async () => {
@@ -203,7 +208,9 @@ describe("Company Actions", () => {
         id: "company-id",
         label: "New Company",
         value: "new company",
-        logoUrl: "http://example.com/logo.png",
+        logoUrl: "/images/favicons/new-company.png",
+        careerPageUrl: "https://example.com/careers",
+        description: "<p>A great company.</p>",
         createdBy: mockUser.id,
       };
       (prisma.company.upsert as jest.Mock).mockResolvedValue(mockCompany);
@@ -219,7 +226,9 @@ describe("Company Actions", () => {
           createdBy: mockUser.id,
           value: "new company",
           label: "New Company",
-          logoUrl: "http://example.com/logo.png",
+          logoUrl: "/images/favicons/new-company.png",
+          careerPageUrl: "https://example.com/careers",
+          description: "<p>A great company.</p>",
         },
       });
       expect(revalidatePath).toHaveBeenCalledWith("/dashboard/myjobs", "page");
@@ -236,35 +245,6 @@ describe("Company Actions", () => {
       expect(prisma.company.upsert).not.toHaveBeenCalled();
     });
 
-    it("should return existing company on upsert match", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-      const mockExistingCompany = {
-        id: "existing-company-id",
-        label: "New Company",
-        value: "new company",
-        logoUrl: "http://example.com/logo.png",
-        createdBy: mockUser.id,
-      };
-      (prisma.company.upsert as jest.Mock).mockResolvedValue(
-        mockExistingCompany,
-      );
-      (revalidatePath as jest.Mock).mockResolvedValue(undefined);
-
-      const result = await addCompany(validData);
-
-      expect(result).toEqual({ success: true, data: mockExistingCompany });
-      expect(prisma.company.upsert).toHaveBeenCalledWith({
-        where: { value: "new company" },
-        update: {},
-        create: {
-          createdBy: mockUser.id,
-          value: "new company",
-          label: "New Company",
-          logoUrl: "http://example.com/logo.png",
-        },
-      });
-    });
-
     it("should handle unexpected errors", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
       (prisma.company.upsert as jest.Mock).mockRejectedValue(
@@ -277,83 +257,35 @@ describe("Company Actions", () => {
       expect(prisma.company.upsert).toHaveBeenCalled();
     });
 
-    it("should return error if logo URL is invalid", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-
-      const invalidData = {
-        company: "New Company",
-        logoUrl: "javascript:alert('xss')",
-      };
-
-      const result = await addCompany(invalidData);
-
-      expect(result).toEqual({
-        success: false,
-        message: "Invalid logo URL. Only http and https protocols are allowed.",
-      });
-
-      expect(prisma.company.findUnique).not.toHaveBeenCalled();
-      expect(prisma.company.create).not.toHaveBeenCalled();
-    });
-
-    it("should return error if logo URL has data protocol", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-
-      const invalidData = {
-        company: "New Company",
-        logoUrl: "data:image/png;base64,iVBORw0KGgo=",
-      };
-
-      const result = await addCompany(invalidData);
-
-      expect(result).toEqual({
-        success: false,
-        message: "Invalid logo URL. Only http and https protocols are allowed.",
-      });
-
-      expect(prisma.company.upsert).not.toHaveBeenCalled();
-    });
-
-    it("should allow empty logo URL", async () => {
+    it("should handle missing optional fields", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
       const mockCompany = {
         id: "company-id",
         label: "New Company",
         value: "new company",
-        logoUrl: "",
+        logoUrl: null,
+        careerPageUrl: null,
+        description: null,
         createdBy: mockUser.id,
       };
       (prisma.company.upsert as jest.Mock).mockResolvedValue(mockCompany);
       (revalidatePath as jest.Mock).mockResolvedValue(undefined);
 
-      const result = await addCompany({
-        company: "New Company",
-        logoUrl: "",
-      });
+      const result = await addCompany({ company: "New Company" });
 
       expect(result).toEqual({ success: true, data: mockCompany });
-      expect(prisma.company.upsert).toHaveBeenCalled();
-    });
-
-    it("should allow https URLs", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-      const mockCompany = {
-        id: "company-id",
-        label: "New Company",
-        value: "new company",
-        logoUrl: "https://example.com/logo.png",
-        createdBy: mockUser.id,
-      };
-      (prisma.company.upsert as jest.Mock).mockResolvedValue(mockCompany);
-      (revalidatePath as jest.Mock).mockResolvedValue(undefined);
-
-      const result = await addCompany({
-        company: "New Company",
-        logoUrl: "https://example.com/logo.png",
+      expect(prisma.company.upsert).toHaveBeenCalledWith({
+        where: { value: "new company" },
+        update: {},
+        create: {
+          createdBy: mockUser.id,
+          value: "new company",
+          label: "New Company",
+          logoUrl: null,
+          careerPageUrl: null,
+          description: null,
+        },
       });
-
-      expect(result).toEqual({ success: true, data: mockCompany });
-      expect(prisma.company.upsert).toHaveBeenCalled();
     });
   });
 
@@ -361,7 +293,9 @@ describe("Company Actions", () => {
     const validData = {
       id: "company-id",
       company: "Updated Company",
-      logoUrl: "http://example.com/logo.png",
+      careerPageUrl: "https://example.com/careers",
+      logoUrl: "/images/favicons/updated-company.png",
+      description: "<p>Updated description.</p>",
       createdBy: "user-id",
     };
 
@@ -392,7 +326,9 @@ describe("Company Actions", () => {
         data: {
           value: "updated company",
           label: "Updated Company",
-          logoUrl: "http://example.com/logo.png",
+          logoUrl: "/images/favicons/updated-company.png",
+          careerPageUrl: "https://example.com/careers",
+          description: "<p>Updated description.</p>",
         },
       });
     });
@@ -442,65 +378,32 @@ describe("Company Actions", () => {
       expect(prisma.company.findUnique).not.toHaveBeenCalled();
       expect(prisma.company.update).not.toHaveBeenCalled();
     });
+  });
 
-    it("should return error if logo URL is invalid", async () => {
+  describe("updateCompanyDescription", () => {
+    it("should update company description successfully", async () => {
       (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
+      const mockUpdated = { id: "company-id", description: "<p>New desc</p>" };
+      (prisma.company.update as jest.Mock).mockResolvedValue(mockUpdated);
 
-      const invalidData = {
-        ...validData,
-        logoUrl: "javascript:alert('xss')",
-      };
+      const result = await updateCompanyDescription("company-id", "<p>New desc</p>");
 
-      const result = await updateCompany(invalidData);
-
-      expect(result).toEqual({
-        success: false,
-        message: "Invalid logo URL. Only http and https protocols are allowed.",
+      expect(result).toEqual({ success: true, data: mockUpdated });
+      expect(prisma.company.update).toHaveBeenCalledWith({
+        where: { id: "company-id", createdBy: mockUser.id },
+        data: { description: "<p>New desc</p>" },
       });
-
-      expect(prisma.company.findUnique).not.toHaveBeenCalled();
-      expect(prisma.company.update).not.toHaveBeenCalled();
     });
 
-    it("should return error if logo URL has data protocol", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-
-      const invalidData = {
-        ...validData,
-        logoUrl: "data:image/png;base64,iVBORw0KGgo=",
-      };
-
-      const result = await updateCompany(invalidData);
-
-      expect(result).toEqual({
-        success: false,
-        message: "Invalid logo URL. Only http and https protocols are allowed.",
-      });
-
-      expect(prisma.company.update).not.toHaveBeenCalled();
-    });
-
-    it("should allow empty logo URL", async () => {
-      (getCurrentUser as jest.Mock).mockResolvedValue(mockUser);
-
-      (prisma.company.findUnique as jest.Mock).mockResolvedValue(null);
-
-      const mockUpdatedCompany = {
-        id: "company-id",
-        value: "updated company",
-      };
-
-      (prisma.company.update as jest.Mock).mockResolvedValue(
-        mockUpdatedCompany,
+    it("should return error if user is not authenticated", async () => {
+      (requireUser as jest.Mock).mockRejectedValue(
+        new Error("Not authenticated")
       );
 
-      const result = await updateCompany({
-        ...validData,
-        logoUrl: "",
-      });
+      const result = await updateCompanyDescription("company-id", "desc");
 
-      expect(result).toEqual({ success: true, data: mockUpdatedCompany });
-      expect(prisma.company.update).toHaveBeenCalled();
+      expect(result).toEqual({ success: false, message: "Not authenticated" });
+      expect(prisma.company.update).not.toHaveBeenCalled();
     });
   });
 

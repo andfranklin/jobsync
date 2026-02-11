@@ -17,12 +17,14 @@ export const AddCompanyFormSchema = z.object({
       error: "Company name is required.",
     })
     .min(1),
-  logoUrl: z
+  careerPageUrl: z
     .string()
     .default("")
     .optional()
     .refine(
       (url) => !url || isValidUrl(url),
-      "Please enter a valid URL (e.g., https://example.com/logo.png)",
+      "Please enter a valid URL (e.g., https://company.com/careers)",
     ),
+  logoUrl: z.string().optional(),
+  description: z.string().optional(),
 });

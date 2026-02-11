@@ -59,6 +59,8 @@ export interface Company {
   value: string;
   createdBy: string;
   logoUrl?: string;
+  careerPageUrl?: string | null;
+  description?: string | null;
   _count?: {
     jobsApplied: number;
   };

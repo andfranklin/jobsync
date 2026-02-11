@@ -30,6 +30,8 @@ export const getCompanyList = async (
                 label: true,
                 value: true,
                 logoUrl: true,
+                careerPageUrl: true,
+                description: true,
                 _count: {
                   select: {
                     jobsApplied: {
@@ -77,35 +79,13 @@ export const getAllCompanies = async (): Promise<any | undefined> => {
   }
 };
 
-const isValidImageUrl = (url: string): boolean => {
-  if (!url) return true;
-  try {
-    const urlObj = new URL(url);
-    // Only allow http and https protocols
-    if (!["http:", "https:"].includes(urlObj.protocol)) {
-      return false;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 export const addCompany = async (
   data: z.infer<typeof AddCompanyFormSchema>,
 ): Promise<any | undefined> => {
   try {
     const user = await requireUser();
 
-    const { company, logoUrl } = data;
-
-    // Validate image URL
-    if (logoUrl && !isValidImageUrl(logoUrl)) {
-      throw new Error(
-        "Invalid logo URL. Only http and https protocols are allowed.",
-      );
-    }
-
+    const { company, careerPageUrl, logoUrl, description } = data;
     const value = company.trim().toLowerCase();
 
     const res = await prisma.company.upsert({
@@ -115,7 +95,9 @@ export const addCompany = async (
         createdBy: user.id,
         value,
         label: company,
-        logoUrl,
+        logoUrl: logoUrl || null,
+        careerPageUrl: careerPageUrl || null,
+        description: description || null,
       },
     });
     revalidatePath("/dashboard/myjobs", "page");
@@ -132,17 +114,10 @@ export const updateCompany = async (
   try {
     const user = await requireUser();
 
-    const { id, company, logoUrl, createdBy } = data;
+    const { id, company, careerPageUrl, logoUrl, description, createdBy } = data;
 
     if (!id || user.id != createdBy) {
       throw new Error("Id is not provided or no user privilages");
-    }
-
-    // Validate image URL
-    if (logoUrl && !isValidImageUrl(logoUrl)) {
-      throw new Error(
-        "Invalid logo URL. Only http and https protocols are allowed.",
-      );
     }
 
     const value = company.trim().toLowerCase();
@@ -164,7 +139,9 @@ export const updateCompany = async (
       data: {
         value,
         label: company,
-        logoUrl,
+        logoUrl: logoUrl || null,
+        careerPageUrl: careerPageUrl || null,
+        description: description || null,
       },
     });
 
@@ -192,6 +169,30 @@ export const getCompanyById = async (
     return company;
   } catch (error) {
     const msg = "Failed to fetch company by Id. ";
+    return handleError(error, msg);
+  }
+};
+
+export const updateCompanyDescription = async (
+  companyId: string,
+  description: string,
+): Promise<any | undefined> => {
+  try {
+    const user = await requireUser();
+
+    const res = await prisma.company.update({
+      where: {
+        id: companyId,
+        createdBy: user.id,
+      },
+      data: {
+        description,
+      },
+    });
+
+    return { success: true, data: res };
+  } catch (error) {
+    const msg = "Failed to update company description.";
     return handleError(error, msg);
   }
 };

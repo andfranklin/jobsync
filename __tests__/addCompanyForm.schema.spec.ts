@@ -20,51 +20,50 @@ describe("AddCompanyFormSchema", () => {
     });
   });
 
-  describe("logoUrl field", () => {
+  describe("careerPageUrl field", () => {
     it("should accept valid https URL", () => {
       const validData = {
         company: "Tech Company",
-        logoUrl: "https://example.com/logo.png",
+        careerPageUrl: "https://example.com/careers",
       };
 
       const result = AddCompanyFormSchema.parse(validData);
-      expect(result.logoUrl).toBe("https://example.com/logo.png");
+      expect(result.careerPageUrl).toBe("https://example.com/careers");
     });
 
     it("should accept valid http URL", () => {
       const validData = {
         company: "Tech Company",
-        logoUrl: "http://example.com/logo.png",
+        careerPageUrl: "http://example.com/careers",
       };
 
       const result = AddCompanyFormSchema.parse(validData);
-      expect(result.logoUrl).toBe("http://example.com/logo.png");
+      expect(result.careerPageUrl).toBe("http://example.com/careers");
     });
 
-    it("should accept empty logoUrl", () => {
+    it("should accept empty careerPageUrl", () => {
       const validData = {
         company: "Tech Company",
-        logoUrl: "",
+        careerPageUrl: "",
       };
 
       const result = AddCompanyFormSchema.parse(validData);
-      expect(result.logoUrl).toBe("");
+      expect(result.careerPageUrl).toBe("");
     });
 
-    it("should default to empty string when logoUrl is undefined", () => {
+    it("should default to empty string when careerPageUrl is undefined", () => {
       const validData = {
         company: "Tech Company",
       };
 
       const result = AddCompanyFormSchema.parse(validData);
-      // Due to the .default("") in the schema, undefined becomes ""
-      expect(result.logoUrl).toBe("");
+      expect(result.careerPageUrl).toBe("");
     });
 
     it("should reject malformed URL", () => {
       const invalidData = {
         company: "Tech Company",
-        logoUrl: "not a valid url",
+        careerPageUrl: "not a valid url",
       };
 
       expect(() => AddCompanyFormSchema.parse(invalidData)).toThrow(
@@ -75,44 +74,65 @@ describe("AddCompanyFormSchema", () => {
     it("should accept URL with query parameters", () => {
       const validData = {
         company: "Tech Company",
-        logoUrl:
-          "https://example.com/image.png?width=200&height=200&format=png",
+        careerPageUrl: "https://example.com/careers?page=1&filter=engineering",
       };
 
       const result = AddCompanyFormSchema.parse(validData);
-      expect(result.logoUrl).toBe(
-        "https://example.com/image.png?width=200&height=200&format=png",
+      expect(result.careerPageUrl).toBe(
+        "https://example.com/careers?page=1&filter=engineering",
       );
-    });
-
-    it("should accept URL with fragments", () => {
-      const validData = {
-        company: "Tech Company",
-        logoUrl: "https://example.com/logo.png#section",
-      };
-
-      const result = AddCompanyFormSchema.parse(validData);
-      expect(result.logoUrl).toBe("https://example.com/logo.png#section");
     });
 
     it("should accept URL with subdomain", () => {
       const validData = {
         company: "Tech Company",
-        logoUrl: "https://cdn.example.com/logo.png",
+        careerPageUrl: "https://careers.example.com/jobs",
       };
 
       const result = AddCompanyFormSchema.parse(validData);
-      expect(result.logoUrl).toBe("https://cdn.example.com/logo.png");
+      expect(result.careerPageUrl).toBe("https://careers.example.com/jobs");
     });
+  });
 
-    it("should accept URL with port", () => {
+  describe("logoUrl field", () => {
+    it("should accept a logo URL string", () => {
       const validData = {
         company: "Tech Company",
-        logoUrl: "https://example.com:8080/logo.png",
+        logoUrl: "/images/favicons/tech-company.png",
       };
 
       const result = AddCompanyFormSchema.parse(validData);
-      expect(result.logoUrl).toBe("https://example.com:8080/logo.png");
+      expect(result.logoUrl).toBe("/images/favicons/tech-company.png");
+    });
+
+    it("should be undefined when not provided", () => {
+      const validData = {
+        company: "Tech Company",
+      };
+
+      const result = AddCompanyFormSchema.parse(validData);
+      expect(result.logoUrl).toBeUndefined();
+    });
+  });
+
+  describe("description field", () => {
+    it("should accept a description string", () => {
+      const validData = {
+        company: "Tech Company",
+        description: "<p>A great company.</p>",
+      };
+
+      const result = AddCompanyFormSchema.parse(validData);
+      expect(result.description).toBe("<p>A great company.</p>");
+    });
+
+    it("should be undefined when not provided", () => {
+      const validData = {
+        company: "Tech Company",
+      };
+
+      const result = AddCompanyFormSchema.parse(validData);
+      expect(result.description).toBeUndefined();
     });
   });
 
@@ -142,7 +162,9 @@ describe("AddCompanyFormSchema", () => {
         id: "company-123",
         createdBy: "user-123",
         company: "Tech Company",
-        logoUrl: "https://example.com/logo.png",
+        careerPageUrl: "https://example.com/careers",
+        logoUrl: "/images/favicons/tech-company.png",
+        description: "<p>A great company.</p>",
       };
 
       const result = AddCompanyFormSchema.parse(validData);

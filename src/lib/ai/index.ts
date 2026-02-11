@@ -11,9 +11,11 @@ export {
   RESUME_REVIEW_SYSTEM_PROMPT,
   JOB_MATCH_SYSTEM_PROMPT,
   JOB_EXTRACT_SYSTEM_PROMPT,
+  COMPANY_DESCRIBE_SYSTEM_PROMPT,
   buildResumeReviewPrompt,
   buildJobMatchPrompt,
   buildJobExtractPrompt,
+  buildCompanyDescribePrompt,
 } from "./prompts";
 
 // Analysis tools
