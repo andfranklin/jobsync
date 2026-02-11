@@ -17,6 +17,8 @@ const JOB_SOURCES = [
   { label: "Google", value: "google" },
   { label: "ZipRecruiter", value: "ziprecruiter" },
   { label: "Job Street", value: "jobstreet" },
+  { label: "Greenhouse", value: "greenhouse" },
+  { label: "Levels.fyi", value: "levelsfyi" },
   { label: "Other", value: "other" },
 ];
 

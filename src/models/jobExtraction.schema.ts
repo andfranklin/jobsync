@@ -31,6 +31,25 @@ export const JobExtractionSchema = z.object({
     .describe(
       "Maximum annual salary as a number without currency symbols, rounded up to the nearest 10000. Omit if not mentioned.",
     ),
+  responsibilities: z
+    .array(z.string())
+    .max(7)
+    .optional()
+    .describe(
+      "Key responsibilities as short bullet-point strings, max 7 items. Omit if not found or not reasonably extrapolatable.",
+    ),
+  minimumQualifications: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Bare-minimum qualifications or requirements for a candidate to be considered. Omit if not found.",
+    ),
+  preferredQualifications: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Qualities or experience that would make a strong candidate. Omit if not found.",
+    ),
 });
 
 export type JobExtraction = z.infer<typeof JobExtractionSchema>;

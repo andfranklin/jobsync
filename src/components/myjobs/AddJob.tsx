@@ -152,6 +152,9 @@ export function AddJob({
           salaryMin: editJob.salaryMin ?? undefined,
           salaryMax: editJob.salaryMax ?? undefined,
           jobDescription: editJob.description,
+          responsibilities: editJob.responsibilities ?? undefined,
+          minimumQualifications: editJob.minimumQualifications ?? undefined,
+          preferredQualifications: editJob.preferredQualifications ?? undefined,
           applied: editJob.applied,
           jobUrl: editJob.jobUrl ?? undefined,
           dateApplied: editJob.appliedDate ?? undefined,
@@ -642,7 +645,55 @@ export function AddJob({
                           Job Description
                         </FormLabel>
                         <FormControl>
-                          <TiptapEditor key={editorKey} field={field} />
+                          <TiptapEditor key={editorKey} field={field} ariaLabelledBy="job-description-label" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {/* Responsibilities */}
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="responsibilities"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel id="responsibilities-label">Responsibilities</FormLabel>
+                        <FormControl>
+                          <TiptapEditor key={editorKey} field={field} ariaLabelledBy="responsibilities-label" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {/* Minimum Qualifications */}
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="minimumQualifications"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel id="min-qualifications-label">Minimum Qualifications</FormLabel>
+                        <FormControl>
+                          <TiptapEditor key={editorKey} field={field} ariaLabelledBy="min-qualifications-label" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {/* Preferred Qualifications */}
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="preferredQualifications"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel id="preferred-qualifications-label">Preferred Qualifications</FormLabel>
+                        <FormControl>
+                          <TiptapEditor key={editorKey} field={field} ariaLabelledBy="preferred-qualifications-label" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

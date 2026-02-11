@@ -33,6 +33,9 @@ export interface JobResponse {
   salaryMin?: number | null;
   salaryMax?: number | null;
   description: string;
+  responsibilities?: string | null;
+  minimumQualifications?: string | null;
+  preferredQualifications?: string | null;
   jobUrl: string;
   applied: boolean;
   resumeId?: string;

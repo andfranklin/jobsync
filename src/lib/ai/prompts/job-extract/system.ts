@@ -19,12 +19,16 @@ export const JOB_EXTRACT_SYSTEM_PROMPT = `You are an expert job posting data ext
 
 **Locations**: Extract all listed work locations as an array. Include city and state/country. If "Remote" or "Hybrid" is mentioned, include it as a location.
 
-**Description**: Extract the job description, responsibilities, qualifications, and requirements. Format as clean HTML using:
+**Description**: Write a concise summary of the role and what it involves (~500 words max). Focus on the team, mission, and day-to-day work. Format as clean HTML using:
 - <p> for paragraphs
-- <h2> for section headings (e.g., "Responsibilities", "Qualifications")
-- <ul> and <li> for bullet points
 - <strong> for emphasis
-Do NOT include the job title, company name, location, or salary in the description — those are separate fields.
+Do NOT include the job title, company name, location, salary, responsibilities, or qualifications in the description — those are all separate fields.
+
+**Responsibilities**: Extract up to 7 key responsibilities as short, clear bullet strings. If responsibilities are not explicitly listed, extrapolate the most important ones from the description. If nothing can be reasonably determined, omit this field entirely.
+
+**Minimum Qualifications**: Extract the bare-minimum qualifications or requirements a candidate must meet to be considered (e.g., years of experience, required skills, education). If not explicitly listed, omit this field.
+
+**Preferred Qualifications**: Extract the qualities, skills, or experience that would make a candidate stand out (e.g., "nice to have" skills, bonus experience). If not explicitly listed, omit this field.
 
 **Job Type**: Map to one of: "FT" (full-time), "PT" (part-time), "C" (contract/contractor/temporary). If not explicitly stated, omit this field.
 

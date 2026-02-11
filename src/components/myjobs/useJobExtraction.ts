@@ -50,6 +50,8 @@ export function useJobExtraction({
         google: "google",
         ziprecruiter: "ziprecruiter",
         jobstreet: "jobstreet",
+        greenhouse: "greenhouse",
+        levelsfyi: "levelsfyi",
       };
       for (const [domain, value] of Object.entries(domainMap)) {
         if (hostname.includes(domain)) {
@@ -85,6 +87,9 @@ export function useJobExtraction({
     );
     return match?.id;
   };
+
+  const bulletsToHtml = (items: string[]): string =>
+    `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
 
   const fillFormFromExtraction = async (extracted: JobExtraction) => {
     const currentValues = form.getValues();
@@ -166,6 +171,24 @@ export function useJobExtraction({
     // Description
     if (!currentValues.jobDescription) {
       setValue("jobDescription", extracted.description);
+      setEditorKey((k) => k + 1);
+    }
+
+    // Responsibilities
+    if (!currentValues.responsibilities && extracted.responsibilities?.length) {
+      setValue("responsibilities", bulletsToHtml(extracted.responsibilities));
+      setEditorKey((k) => k + 1);
+    }
+
+    // Minimum Qualifications
+    if (!currentValues.minimumQualifications && extracted.minimumQualifications?.length) {
+      setValue("minimumQualifications", bulletsToHtml(extracted.minimumQualifications));
+      setEditorKey((k) => k + 1);
+    }
+
+    // Preferred Qualifications
+    if (!currentValues.preferredQualifications && extracted.preferredQualifications?.length) {
+      setValue("preferredQualifications", bulletsToHtml(extracted.preferredQualifications));
       setEditorKey((k) => k + 1);
     }
   };

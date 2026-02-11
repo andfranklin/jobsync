@@ -253,6 +253,24 @@ function JobDetails({ job }: { job: JobResponse }) {
           <div className="my-4 ml-4">
             <TipTapContentViewer content={job?.description} />
           </div>
+          {job.responsibilities && (
+            <div className="my-4 ml-4">
+              <h3 className="font-semibold mb-2">Responsibilities</h3>
+              <TipTapContentViewer content={job.responsibilities} />
+            </div>
+          )}
+          {job.minimumQualifications && (
+            <div className="my-4 ml-4">
+              <h3 className="font-semibold mb-2">Minimum Qualifications</h3>
+              <TipTapContentViewer content={job.minimumQualifications} />
+            </div>
+          )}
+          {job.preferredQualifications && (
+            <div className="my-4 ml-4">
+              <h3 className="font-semibold mb-2">Preferred Qualifications</h3>
+              <TipTapContentViewer content={job.preferredQualifications} />
+            </div>
+          )}
           <CardFooter>
             {pipelineInfo && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

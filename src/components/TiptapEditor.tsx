@@ -8,7 +8,7 @@ import { ControllerRenderProps } from "react-hook-form";
 import { Toggle } from "./ui/toggle";
 import { Bold, Heading2, Italic, List, ListOrdered } from "lucide-react";
 
-const Tiptap = ({ field }: { field: ControllerRenderProps<any, any> }) => {
+const Tiptap = ({ field, ariaLabelledBy }: { field: ControllerRenderProps<any, any>; ariaLabelledBy?: string }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -90,7 +90,7 @@ const Tiptap = ({ field }: { field: ControllerRenderProps<any, any> }) => {
         </div>
       )}
       <EditorContent
-        aria-labelledby="job-description-label"
+        aria-labelledby={ariaLabelledBy}
         placeholder="enter here..."
         editor={editor}
       />
