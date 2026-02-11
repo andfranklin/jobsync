@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "../ui/table";
 import { JobLocation } from "@/models/job.model";
-import { MoreHorizontal, Trash } from "lucide-react";
+import { GitMerge, MoreHorizontal, Pencil, Trash } from "lucide-react";
 import { AlertDialog } from "@/models/alertDialog.model";
 import { toast } from "../ui/use-toast";
 import { deleteJobLocationById } from "@/actions/jobLocation.actions";
@@ -27,11 +27,15 @@ import { deleteJobLocationById } from "@/actions/jobLocation.actions";
 type JobLocationsTableProps = {
   jobLocations: JobLocation[];
   reloadJobLocations: () => void;
+  editLocation: (id: string) => void;
+  onMergeLocation: (location: JobLocation) => void;
 };
 
 function JobLocationsTable({
   jobLocations,
   reloadJobLocations,
+  editLocation,
+  onMergeLocation,
 }: JobLocationsTableProps) {
   const [alert, setAlert] = useState<AlertDialog>({
     openState: false,
@@ -41,9 +45,9 @@ function JobLocationsTable({
     if (location._count?.jobs! > 0) {
       setAlert({
         openState: true,
-        title: "Applied jobs exist!",
+        title: "Associated jobs exist!",
         description:
-          "Associated jobs applied must be 0 to be able to delete this job location",
+          "Associated jobs must be 0 to delete this location. Use Merge to reassign jobs first.",
         deleteAction: false,
       });
     } else {
@@ -79,7 +83,7 @@ function JobLocationsTable({
           <TableRow>
             <TableHead>Location</TableHead>
             <TableHead className="hidden sm:table-cell">Value</TableHead>
-            <TableHead>Jobs Applied</TableHead>
+            <TableHead>Jobs</TableHead>
             <TableHead>Actions</TableHead>
             <TableHead>
               <span className="sr-only">Actions</span>
@@ -107,6 +111,20 @@ function JobLocationsTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => editLocation(location.id)}
+                      >
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => onMergeLocation(location)}
+                      >
+                        <GitMerge className="mr-2 h-4 w-4" />
+                        Merge Into...
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-600 cursor-pointer"
                         onClick={() => onDeleteJobLocation(location)}

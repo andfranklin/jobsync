@@ -2,16 +2,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { APP_CONSTANTS } from "@/lib/constants";
-import { JobTitle } from "@prisma/client";
+import { JobLocation } from "@/models/job.model";
 import JobLocationsTable from "./JobLocationsTable";
-import { getJobLocationsList } from "@/actions/jobLocation.actions";
+import EditLocationDialog from "./EditLocationDialog";
+import MergeLocationDialog from "./MergeLocationDialog";
+import {
+  getAllJobLocations,
+  getJobLocationById,
+  getJobLocationsList,
+} from "@/actions/jobLocation.actions";
 import Loading from "../Loading";
 import { Button } from "../ui/button";
 import { RecordsPerPageSelector } from "../RecordsPerPageSelector";
 import { RecordsCount } from "../RecordsCount";
 
 function JobLocationsContainer() {
-  const [locations, setLocations] = useState<JobTitle[]>([]);
+  const [locations, setLocations] = useState<JobLocation[]>([]);
   const [totalJobLocations, setTotalJobLocations] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
@@ -19,13 +25,23 @@ function JobLocationsContainer() {
     APP_CONSTANTS.RECORDS_PER_PAGE,
   );
 
+  // Edit dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editLocation, setEditLocation] = useState<JobLocation | null>(null);
+
+  // Merge dialog state
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeSourceLocation, setMergeSourceLocation] =
+    useState<JobLocation | null>(null);
+  const [allLocations, setAllLocations] = useState<JobLocation[]>([]);
+
   const loadJobLocations = useCallback(
     async (page: number) => {
       setLoading(true);
       const { data, total } = await getJobLocationsList(
         page,
         recordsPerPage,
-        "applied"
+        "count"
       );
       if (data) {
         setLocations((prev) => (page === 1 ? data : [...prev, ...data]));
@@ -41,9 +57,26 @@ function JobLocationsContainer() {
     await loadJobLocations(1);
   }, [loadJobLocations]);
 
+  const resetEditLocation = () => {
+    setEditLocation(null);
+  };
+
   useEffect(() => {
     (async () => await loadJobLocations(1))();
   }, [loadJobLocations, recordsPerPage]);
+
+  const onEditLocation = async (locationId: string) => {
+    const location = await getJobLocationById(locationId);
+    setEditLocation(location);
+    setDialogOpen(true);
+  };
+
+  const onMergeLocation = async (location: JobLocation) => {
+    setMergeSourceLocation(location);
+    const all = await getAllJobLocations();
+    setAllLocations(all ?? []);
+    setMergeDialogOpen(true);
+  };
 
   return (
     <>
@@ -51,11 +84,6 @@ function JobLocationsContainer() {
         <Card x-chunk="dashboard-06-chunk-0">
           <CardHeader className="flex-row justify-between items-center">
             <CardTitle>Job Locations</CardTitle>
-            <div className="flex items-center">
-              <div className="ml-auto flex items-center gap-2">
-                {/* <AddCompany reloadCompanies={reloadJobLocations} /> */}
-              </div>
-            </div>
           </CardHeader>
           <CardContent>
             {loading && <Loading />}
@@ -64,6 +92,8 @@ function JobLocationsContainer() {
                 <JobLocationsTable
                   jobLocations={locations}
                   reloadJobLocations={reloadJobLocations}
+                  editLocation={onEditLocation}
+                  onMergeLocation={onMergeLocation}
                 />
                 <div className="flex items-center justify-between mt-4">
                   <RecordsCount
@@ -96,6 +126,22 @@ function JobLocationsContainer() {
           </CardContent>
         </Card>
       </div>
+
+      <EditLocationDialog
+        editLocation={editLocation}
+        reloadLocations={reloadJobLocations}
+        resetEditLocation={resetEditLocation}
+        dialogOpen={dialogOpen}
+        setDialogOpen={setDialogOpen}
+      />
+
+      <MergeLocationDialog
+        sourceLocation={mergeSourceLocation}
+        allLocations={allLocations}
+        open={mergeDialogOpen}
+        onOpenChange={setMergeDialogOpen}
+        onMergeComplete={reloadJobLocations}
+      />
     </>
   );
 }
