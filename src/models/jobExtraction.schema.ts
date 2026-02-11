@@ -19,6 +19,12 @@ export const JobExtractionSchema = z.object({
     .describe(
       "The employment type: FT for full-time, PT for part-time, C for contract. Omit if not specified.",
     ),
+  workArrangement: z
+    .enum(["REMOTE", "HYBRID", "IN_OFFICE"])
+    .optional()
+    .describe(
+      "The work arrangement: REMOTE, HYBRID, or IN_OFFICE. Omit if not specified.",
+    ),
   salaryMin: z
     .number()
     .optional()

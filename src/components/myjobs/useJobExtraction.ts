@@ -158,6 +158,11 @@ export function useJobExtraction({
       setValue("type", extracted.jobType);
     }
 
+    // Work Arrangement
+    if (extracted.workArrangement) {
+      setValue("workArrangement", extracted.workArrangement);
+    }
+
     // Salary
     if (currentValues.salaryMin == null && extracted.salaryMin != null) {
       const snapped = snapToSalaryValue(extracted.salaryMin);

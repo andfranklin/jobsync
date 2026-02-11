@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { Badge } from "../ui/badge";
 import { cn, formatUrl } from "@/lib/utils";
-import { JobResponse } from "@/models/job.model";
+import { JobResponse, WORK_ARRANGEMENTS } from "@/models/job.model";
 import { TipTapContentViewer } from "../TipTapContentViewer";
 import {
   Card,
@@ -208,6 +208,12 @@ function JobDetails({ job }: { job: JobResponse }) {
                   ? job.Locations.map((l: any) => l.label).join(", ")
                   : "No location"}{" "}
                 - {getJobType(job?.jobType)}
+                {job?.workArrangement && (
+                  <>
+                    {" "}
+                    · {WORK_ARRANGEMENTS[job.workArrangement as keyof typeof WORK_ARRANGEMENTS] ?? job.workArrangement}
+                  </>
+                )}
               </CardDescription>
             </div>
             <div>

@@ -32,6 +32,8 @@ Do NOT include the job title, company name, location, salary, responsibilities, 
 
 **Job Type**: Map to one of: "FT" (full-time), "PT" (part-time), "C" (contract/contractor/temporary). If not explicitly stated, omit this field.
 
+**Work Arrangement**: Map to one of: "REMOTE" (fully remote), "HYBRID" (mix of remote and in-office), or "IN_OFFICE" (fully on-site/in-person). If not explicitly stated, omit this field.
+
 **Salary**: Extract salary as annual numbers.
 - If a range is given (e.g., "$80,000 - $120,000"), use those as min and max
 - If a single number is given, use it for both min and max

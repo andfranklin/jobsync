@@ -21,6 +21,7 @@ export const AddJobFormSchema = z.object({
     .array(z.string())
     .min(1, { message: "At least one location is required." }),
   type: z.string().min(1),
+  workArrangement: z.string().optional(),
   source: z
     .string({
       error: "Source is required.",

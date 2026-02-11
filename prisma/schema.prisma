@@ -237,6 +237,7 @@ model Job {
   jobSourceId String?
   salaryMin   Int?
   salaryMax   Int?
+  workArrangement         String?
   responsibilities        String?
   minimumQualifications   String?
   preferredQualifications String?

@@ -32,7 +32,7 @@ import {
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { useState } from "react";
-import { JobResponse, JobStatus } from "@/models/job.model";
+import { JobResponse, JobStatus, WORK_ARRANGEMENTS } from "@/models/job.model";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
@@ -77,6 +77,7 @@ function MyJobsTable({
             <TableHead>Title</TableHead>
             <TableHead>Company</TableHead>
             <TableHead className="hidden md:table-cell">Location</TableHead>
+            <TableHead className="hidden lg:table-cell">Arrangement</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="hidden md:table-cell">Source</TableHead>
             <TableHead>
@@ -120,6 +121,11 @@ function MyJobsTable({
                       ))}
                     </div>
                   ) : null}
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  {job.workArrangement
+                    ? WORK_ARRANGEMENTS[job.workArrangement as keyof typeof WORK_ARRANGEMENTS] ?? job.workArrangement
+                    : null}
                 </TableCell>
                 <TableCell>
                   {new Date() > job.dueDate && job.Status?.value === "draft" ? (

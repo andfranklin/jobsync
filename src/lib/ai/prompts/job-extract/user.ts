@@ -21,6 +21,7 @@ Return a JSON object with these fields:
 - minimumQualifications: Array of bare-minimum requirement strings (omit if not found)
 - preferredQualifications: Array of preferred/strong-candidate quality strings (omit if not found)
 - jobType: "FT", "PT", or "C" (omit if unclear)
+- workArrangement: "REMOTE", "HYBRID", or "IN_OFFICE" (omit if unclear)
 - salaryMin: Minimum annual salary as a number (omit if not mentioned)
 - salaryMax: Maximum annual salary as a number (omit if not mentioned)
 

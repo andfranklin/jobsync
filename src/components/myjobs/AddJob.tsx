@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Company,
   JOB_TYPES,
+  WORK_ARRANGEMENTS,
   JobLocation,
   JobResponse,
   JobSource,
@@ -146,6 +147,7 @@ export function AddJob({
           company: editJob.Company.id,
           location: editJob.Locations?.map((l) => l.id) ?? [],
           type: editJob.jobType,
+          workArrangement: editJob.workArrangement ?? undefined,
           source: editJob.JobSource.id,
           status: editJob.Status.id,
           dueDate: editJob.dueDate,
@@ -410,6 +412,41 @@ export function AddJob({
                               </FormLabel>
                             </FormItem>
                           ))}
+                        </RadioGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {/* Work Arrangement */}
+                <div>
+                  <FormField
+                    control={form.control}
+                    name="workArrangement"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="mb-2">Work Arrangement</FormLabel>
+                        <RadioGroup
+                          name="workArrangement"
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex space-y-1"
+                        >
+                          {Object.entries(WORK_ARRANGEMENTS).map(
+                            ([key, value]) => (
+                              <FormItem
+                                key={key}
+                                className="flex items-center space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <RadioGroupItem value={key} />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {value}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          )}
                         </RadioGroup>
                         <FormMessage />
                       </FormItem>

@@ -27,6 +27,7 @@ export interface JobResponse {
   Locations: JobLocation[];
   JobSource: JobSource;
   jobType: string;
+  workArrangement?: string | null;
   createdAt: Date;
   appliedDate: Date;
   dueDate: Date;
@@ -97,4 +98,10 @@ export enum JOB_TYPES {
   FT = "Full-time",
   PT = "Part-time",
   C = "Contract",
+}
+
+export enum WORK_ARRANGEMENTS {
+  REMOTE = "Remote",
+  HYBRID = "Hybrid",
+  IN_OFFICE = "In-office",
 }
