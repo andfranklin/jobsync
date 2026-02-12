@@ -33,6 +33,22 @@ export const getJobSourceList = async (): Promise<any | undefined> => {
   }
 };
 
+export const createJobSource = async (
+  label: string,
+  value: string,
+): Promise<{ id: string; label: string; value: string } | undefined> => {
+  try {
+    const source = await prisma.jobSource.upsert({
+      where: { value },
+      update: { label },
+      create: { label, value },
+    });
+    return source;
+  } catch (error) {
+    return handleError(error, "Failed to create job source. ");
+  }
+};
+
 export const getJobsList = async (
   page: number = 1,
   limit: number = APP_CONSTANTS.RECORDS_PER_PAGE,

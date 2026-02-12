@@ -7,7 +7,7 @@ import { AddJobFormSchema } from "@/models/addJobForm.schema";
 import { JobExtraction } from "@/models/jobExtraction.schema";
 import { Company, JobLocation, JobSource, JobTitle } from "@/models/job.model";
 import { SALARY_VALUES } from "@/lib/data/salaryRangeData";
-import { createLocation } from "@/actions/job.actions";
+import { createLocation, createJobSource } from "@/actions/job.actions";
 import { addCompany } from "@/actions/company.actions";
 import { createJobTitle } from "@/actions/jobtitle.actions";
 import { getFromLocalStorage } from "@/utils/localstorage.utils";
@@ -39,27 +39,29 @@ export function useJobExtraction({
 
   const { setValue } = form;
 
-  const detectSourceFromUrl = (url: string): string | undefined => {
+  const detectSourceFromUrl = (url: string): { id: string } | { label: string; value: string } | undefined => {
     try {
       const hostname = new URL(url).hostname.toLowerCase();
-      const domainMap: Record<string, string> = {
-        indeed: "indeed",
-        linkedin: "linkedin",
-        monster: "monster",
-        glassdoor: "glassdoor",
-        google: "google",
-        ziprecruiter: "ziprecruiter",
-        jobstreet: "jobstreet",
-        greenhouse: "greenhouse",
-        levelsfyi: "levelsfyi",
-      };
-      for (const [domain, value] of Object.entries(domainMap)) {
+      const domainMap = [
+        { domain: "indeed", value: "indeed", label: "Indeed" },
+        { domain: "linkedin", value: "linkedin", label: "LinkedIn" },
+        { domain: "monster", value: "monster", label: "Monster" },
+        { domain: "glassdoor", value: "glassdoor", label: "Glassdoor" },
+        { domain: "google", value: "google", label: "Google" },
+        { domain: "ziprecruiter", value: "ziprecruiter", label: "ZipRecruiter" },
+        { domain: "jobstreet", value: "jobstreet", label: "Job Street" },
+        { domain: "greenhouse", value: "greenhouse", label: "Greenhouse" },
+        { domain: "levelsfyi", value: "levelsfyi", label: "Levels.fyi" },
+      ];
+      for (const { domain, value, label } of domainMap) {
         if (hostname.includes(domain)) {
           const source = jobSources.find((s) => s.value === value);
-          return source?.id ?? jobSources.find((s) => s.value === "other")?.id;
+          if (source) return { id: source.id };
+          return { label, value };
         }
       }
-      return jobSources.find((s) => s.value === "careerpage")?.id;
+      const careerPage = jobSources.find((s) => s.value === "careerpage");
+      return careerPage ? { id: careerPage.id } : undefined;
     } catch {
       return undefined;
     }
@@ -147,13 +149,19 @@ export function useJobExtraction({
       }
     }
 
-    // Source (detect from URL)
+    // Source (detect from URL, auto-create if missing)
     if (!currentValues.source) {
       const jobUrl = sourceUrl || currentValues.jobUrl;
       if (jobUrl) {
-        const sourceId = detectSourceFromUrl(jobUrl);
-        if (sourceId) {
-          setValue("source", sourceId);
+        const detected = detectSourceFromUrl(jobUrl);
+        if (detected && "id" in detected) {
+          setValue("source", detected.id);
+        } else if (detected) {
+          const created = await createJobSource(detected.label, detected.value);
+          if (created?.id) {
+            jobSources.push(created);
+            setValue("source", created.id);
+          }
         }
       }
     }
