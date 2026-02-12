@@ -613,6 +613,11 @@ function AiSettings() {
               <span>{runningModelError}</span>
             </div>
           )}
+          {isOllama && (
+            <p className="text-xs text-muted-foreground mt-2">
+              For best extraction results, use a 7B+ parameter model (e.g. llama3.1, mistral, qwen2.5).
+            </p>
+          )}
         </div>
 
         {/* Context Length (Ollama only) */}

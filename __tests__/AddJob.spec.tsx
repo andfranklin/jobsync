@@ -279,7 +279,7 @@ describe("AddJob Component", () => {
         salaryMin: undefined,
         salaryMax: undefined,
         jobDescription: "<p>New Job Description</p>",
-        jobUrl: undefined,
+        jobUrl: "",
         applied: false,
       });
     });

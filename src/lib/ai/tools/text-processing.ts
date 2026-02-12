@@ -111,6 +111,126 @@ export const extractTextFromHtml = (html: string): string => {
   return jsonLdText ? `${jsonLdText}\n${htmlText}`.trim() : htmlText;
 };
 
+// SALARY EXTRACTION FROM JSON-LD
+
+export interface JsonLdSalary {
+  min?: number;
+  max?: number;
+}
+
+/**
+ * Parses JSON-LD structured data from HTML to extract salary information.
+ * Handles Schema.org JobPosting format with baseSalary or estimatedSalary fields.
+ */
+export const extractSalaryFromJsonLd = (html: string): JsonLdSalary => {
+  const jsonLdRegex =
+    /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = jsonLdRegex.exec(html)) !== null) {
+    try {
+      const data = JSON.parse(match[1].trim());
+      const result = parseSalaryFromJsonLdObject(data);
+      if (result.min != null || result.max != null) return result;
+    } catch {
+      // Invalid JSON — skip this block
+    }
+  }
+  return {};
+};
+
+const parseSalaryFromJsonLdObject = (data: any): JsonLdSalary => {
+  // Handle @graph arrays (some sites wrap JobPosting in a graph)
+  if (data?.["@graph"] && Array.isArray(data["@graph"])) {
+    for (const item of data["@graph"]) {
+      const result = parseSalaryFromJsonLdObject(item);
+      if (result.min != null || result.max != null) return result;
+    }
+  }
+
+  // Only process JobPosting types (handle both string and array formats)
+  const rawType = data?.["@type"];
+  const type = Array.isArray(rawType) ? rawType[0] : rawType;
+  if (type !== "JobPosting" && type !== "jobPosting") return {};
+
+  // Try baseSalary first, then estimatedSalary
+  const salary = data.baseSalary || data.estimatedSalary;
+  if (!salary) return {};
+
+  // Handle array format (estimatedSalary can be an array)
+  const salaryObj = Array.isArray(salary) ? salary[0] : salary;
+  if (!salaryObj) return {};
+
+  // Extract from nested value object or direct properties
+  const value = salaryObj.value || salaryObj;
+  const min = value?.minValue ?? value?.value;
+  const max = value?.maxValue ?? value?.value;
+
+  return {
+    min: typeof min === "number" ? min : undefined,
+    max: typeof max === "number" ? max : undefined,
+  };
+};
+
+/**
+ * Regex-based salary extraction from raw HTML.
+ * Strips HTML tags and decodes entities first, then searches for salary
+ * range patterns like "$128,000 - $240,000" in the cleaned text.
+ * Used as a second fallback when JSON-LD doesn't contain salary data.
+ */
+export const extractSalaryFromHtml = (html: string): JsonLdSalary => {
+  if (!html) return {};
+
+  // Strip HTML tags and decode entities so regex sees clean text
+  const text = html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ");
+
+  // Try range pattern first (most precise)
+  const rangePattern =
+    /\$(\d{1,3}(?:,\d{3})+)(?:\.\d{2})?\s*[-–—]\s*\$(\d{1,3}(?:,\d{3})+)(?:\.\d{2})?/i;
+  const rangeMatch = rangePattern.exec(text);
+  if (rangeMatch) {
+    const min = parseInt(rangeMatch[1].replace(/,/g, ""), 10);
+    const max = parseInt(rangeMatch[2].replace(/,/g, ""), 10);
+    if (min >= 30000 && max >= min) return { min, max };
+  }
+
+  // Fallback: collect all salary-like dollar amounts
+  const amountPattern = /\$(\d{1,3}(?:,\d{3})+)/g;
+  const amounts: number[] = [];
+  let match;
+  while ((match = amountPattern.exec(text)) !== null) {
+    const val = parseInt(match[1].replace(/,/g, ""), 10);
+    if (val >= 30000 && val <= 999000) amounts.push(val);
+  }
+  if (amounts.length >= 2) {
+    return { min: Math.min(...amounts), max: Math.max(...amounts) };
+  }
+
+  return {};
+};
+
+// SALARY PRESERVATION
+
+/**
+ * Scans the original HTML for dollar amounts that Readability stripped
+ * (typically from footers, legal disclosures, or sidebars) and prepends
+ * them to the cleaned text so the AI model can find salary information.
+ */
+const preserveSalaryInfo = (html: string, cleanedText: string): string => {
+  const salaryPattern = /\$\d{1,3}(?:,\d{3})+(?:\.\d{2})?/g;
+  const amounts = [...new Set(html.match(salaryPattern) || [])];
+
+  if (amounts.length === 0) return cleanedText;
+
+  const missingAmounts = amounts.filter((a) => !cleanedText.includes(a));
+  if (missingAmounts.length === 0) return cleanedText;
+
+  return `Compensation: ${missingAmounts.join(" – ")}\n\n${cleanedText}`;
+};
+
 // READABILITY-BASED CONTENT EXTRACTION
 
 /**
@@ -141,7 +261,8 @@ export const extractMainContent = (html: string): string => {
 
     if (article && article.textContent && article.textContent.trim().length > 100) {
       const cleaned = normalizeWhitespace(article.textContent);
-      return jsonLdText ? `${jsonLdText}\n${cleaned}`.trim() : cleaned;
+      const withSalary = preserveSalaryInfo(html, cleaned);
+      return jsonLdText ? `${jsonLdText}\n${withSalary}`.trim() : withSalary;
     }
   } catch {
     // Readability failed — fall through to basic extraction

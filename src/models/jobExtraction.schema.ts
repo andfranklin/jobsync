@@ -1,17 +1,17 @@
 import { z } from "zod";
 
 export const JobExtractionSchema = z.object({
-  title: z.string().describe("The exact job title as stated in the posting"),
+  title: z.string().describe("The core job title only — omit department, team, or group suffixes that appear after a comma or dash"),
   company: z.string().describe("The company name"),
   locations: z
     .array(z.string())
     .describe(
-      "Job locations as an array of strings, e.g. ['San Francisco, CA', 'Remote']",
+      "Job locations as an array of strings, e.g. ['San Francisco, CA', 'Remote']. Only actual work locations — never legal notices or ordinances.",
     ),
   description: z
     .string()
     .describe(
-      "The job description, responsibilities, and requirements formatted as clean HTML using <p>, <ul>, <li>, <strong>, and <h2> tags",
+      "A concise third-person summary of the role (~500 words max) as clean HTML. Do NOT include responsibilities or qualifications. Use neutral voice (never 'we' or 'you').",
     ),
   jobType: z
     .enum(["FT", "PT", "C"])

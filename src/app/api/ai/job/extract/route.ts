@@ -8,6 +8,8 @@ import {
   buildJobExtractPrompt,
   extractMainContent,
   extractTextFromHtml,
+  extractSalaryFromJsonLd,
+  extractSalaryFromHtml,
 } from "@/lib/ai";
 import { authenticateAndRateLimit, handleAiError } from "@/lib/ai/route-helpers";
 import {
@@ -70,7 +72,7 @@ export const POST = async (req: NextRequest) => {
     }
   }
 
-  const modelName = selectedModel.model || "llama3.2";
+  const modelName = selectedModel.model || "llama3.1";
   const numCtx = selectedModel.numCtx ?? 8192;
   const maxTextLength = getTextLimit(selectedModel.provider, numCtx);
   const pipelineConfig: PipelineConfig = {
@@ -242,6 +244,21 @@ export const POST = async (req: NextRequest) => {
       prompt: buildJobExtractPrompt(pageText),
       temperature: EXTRACTION_TEMPERATURE,
     });
+
+    // Salary fallback: try JSON-LD first, then regex on raw HTML
+    if (result.object.salaryMin == null || result.object.salaryMax == null) {
+      const html = rawContent ?? "";
+      const salary = extractSalaryFromJsonLd(html);
+      const fallback = (salary.min != null || salary.max != null) ? salary : extractSalaryFromHtml(html);
+      console.log("[job-extract] AI salary:", { min: result.object.salaryMin, max: result.object.salaryMax });
+      console.log("[job-extract] Fallback salary:", fallback);
+      if (fallback.min != null && result.object.salaryMin == null) {
+        result.object.salaryMin = Math.floor(fallback.min / 10000) * 10000;
+      }
+      if (fallback.max != null && result.object.salaryMax == null) {
+        result.object.salaryMax = Math.ceil(fallback.max / 10000) * 10000;
+      }
+    }
 
     // Update pipeline with extracted data
     if (pipelineRunId) {

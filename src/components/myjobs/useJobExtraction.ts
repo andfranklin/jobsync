@@ -55,7 +55,8 @@ export function useJobExtraction({
       };
       for (const [domain, value] of Object.entries(domainMap)) {
         if (hostname.includes(domain)) {
-          return jobSources.find((s) => s.value === value)?.id;
+          const source = jobSources.find((s) => s.value === value);
+          return source?.id ?? jobSources.find((s) => s.value === "other")?.id;
         }
       }
       return jobSources.find((s) => s.value === "careerpage")?.id;
@@ -88,17 +89,20 @@ export function useJobExtraction({
     return match?.id;
   };
 
-  const bulletsToHtml = (items: string[]): string =>
-    `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+  const bulletsToHtml = (items: string[]): string => {
+    const filtered = items.filter((i) => i.trim());
+    return `<ul>${filtered.map((i) => `<li><p>${i}</p></li>`).join("")}</ul>`;
+  };
 
-  const fillFormFromExtraction = async (extracted: JobExtraction) => {
+  const fillFormFromExtraction = async (extracted: JobExtraction, sourceUrl?: string) => {
     const currentValues = form.getValues();
 
-    // Job Title
+    // Job Title — exact match only; create new if not found
     if (!currentValues.title) {
-      const matchedId = findMatchingEntity(extracted.title, jobTitles);
-      if (matchedId) {
-        setValue("title", matchedId);
+      const normalized = extracted.title.trim().toLowerCase();
+      const exactMatch = jobTitles.find((t) => t.value === normalized);
+      if (exactMatch) {
+        setValue("title", exactMatch.id);
       } else {
         const created = await createJobTitle(extracted.title);
         if (created?.id) {
@@ -126,6 +130,7 @@ export function useJobExtraction({
     if (!currentValues.location || currentValues.location.length === 0) {
       const locationIds: string[] = [];
       for (const loc of extracted.locations) {
+        if (/ordinance|fair chance|eeoc|equal opportunity/i.test(loc)) continue;
         const matchedId = findMatchingEntity(loc, locations);
         if (matchedId) {
           locationIds.push(matchedId);
@@ -144,7 +149,7 @@ export function useJobExtraction({
 
     // Source (detect from URL)
     if (!currentValues.source) {
-      const jobUrl = currentValues.jobUrl;
+      const jobUrl = sourceUrl || currentValues.jobUrl;
       if (jobUrl) {
         const sourceId = detectSourceFromUrl(jobUrl);
         if (sourceId) {
@@ -166,11 +171,11 @@ export function useJobExtraction({
     // Salary
     if (currentValues.salaryMin == null && extracted.salaryMin != null) {
       const snapped = snapToSalaryValue(extracted.salaryMin);
-      if (snapped) setValue("salaryMin", snapped);
+      if (snapped) setValue("salaryMin", snapped, { shouldValidate: true, shouldDirty: true });
     }
     if (currentValues.salaryMax == null && extracted.salaryMax != null) {
       const snapped = snapToSalaryValue(extracted.salaryMax);
-      if (snapped) setValue("salaryMax", snapped);
+      if (snapped) setValue("salaryMax", snapped, { shouldValidate: true, shouldDirty: true });
     }
 
     // Description
@@ -211,7 +216,7 @@ export function useJobExtraction({
     return selectedModel;
   };
 
-  const processExtractResponse = async (res: Response) => {
+  const processExtractResponse = async (res: Response, sourceUrl?: string) => {
     if (!res.ok) {
       const err = await res.json();
       const status = res.status;
@@ -227,7 +232,7 @@ export function useJobExtraction({
     }
 
     const extracted: JobExtraction = await res.json();
-    await fillFormFromExtraction(extracted);
+    await fillFormFromExtraction(extracted, sourceUrl);
     setShowPasteInput(false);
     setPasteContent("");
 
@@ -253,7 +258,7 @@ export function useJobExtraction({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, selectedModel, pipelineSettings }),
       });
-      await processExtractResponse(res);
+      await processExtractResponse(res, url);
     } catch {
       toast({
         variant: "destructive",

@@ -48,8 +48,11 @@ export {
   extractMetadata,
   extractTextFromHtml,
   extractMainContent,
+  extractSalaryFromJsonLd,
+  extractSalaryFromHtml,
   validateText,
   type TextMetadata,
+  type JsonLdSalary,
 } from "./tools/text-processing";
 
 export { checkRateLimit } from "./rate-limiter";

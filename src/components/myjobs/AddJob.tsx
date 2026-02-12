@@ -88,6 +88,7 @@ export function AddJob({
     // with @hookform/resolvers' expected z4.$ZodType<Output, Input> constraint.
     resolver: zodResolver(AddJobFormSchema) as any,
     defaultValues: {
+      jobUrl: "",
       type: Object.keys(JOB_TYPES)[0],
       dueDate: addDays(new Date(), 3),
       status: jobStatuses[0].id,
@@ -396,7 +397,7 @@ export function AddJob({
                         <RadioGroup
                           name="type"
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value ?? ""}
                           className="flex space-y-1"
                         >
                           {Object.entries(JOB_TYPES).map(([key, value]) => (
@@ -429,7 +430,7 @@ export function AddJob({
                         <RadioGroup
                           name="workArrangement"
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value ?? ""}
                           className="flex space-y-1"
                         >
                           {Object.entries(WORK_ARRANGEMENTS).map(

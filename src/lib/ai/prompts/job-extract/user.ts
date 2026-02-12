@@ -13,17 +13,17 @@ ${pageText}
 ## INSTRUCTIONS:
 
 Return a JSON object with these fields:
-- title: The exact job title
+- title: The core job title only (omit department/team suffixes after commas or dashes)
 - company: The company name
-- locations: Array of location strings (e.g., ["San Francisco, CA", "Remote"])
-- description: A concise summary of the role (~500 words max) as clean HTML — NOT responsibilities or qualifications
+- locations: Array of location strings EXACTLY as written on the page — do not infer more specific locations
+- description: A concise summary of the role (~500 words max) as clean HTML in neutral third-person voice — NOT responsibilities or qualifications
 - responsibilities: Array of up to 7 key responsibility strings (omit if not found)
 - minimumQualifications: Array of bare-minimum requirement strings (omit if not found)
 - preferredQualifications: Array of preferred/strong-candidate quality strings (omit if not found)
 - jobType: "FT", "PT", or "C" (omit if unclear)
 - workArrangement: "REMOTE", "HYBRID", or "IN_OFFICE" (omit if unclear)
-- salaryMin: Minimum annual salary as a number (omit if not mentioned)
-- salaryMax: Maximum annual salary as a number (omit if not mentioned)
+- salaryMin: Minimum annual salary as a number (check compensation sections and legal disclosures; omit if not mentioned)
+- salaryMax: Maximum annual salary as a number (check compensation sections and legal disclosures; omit if not mentioned)
 
 Only include fields you can confidently extract from the text.`;
 }

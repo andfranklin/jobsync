@@ -122,7 +122,7 @@ export const POST = async (req: NextRequest) => {
     const pageText = extractMainContent(html);
 
     if (pageText.length >= 100) {
-      const modelName = selectedModel.model || "llama3.2";
+      const modelName = selectedModel.model || "llama3.1";
       const numCtx = selectedModel.numCtx ?? 8192;
       const maxTextLength = getTextLimit(selectedModel.provider, numCtx);
 
