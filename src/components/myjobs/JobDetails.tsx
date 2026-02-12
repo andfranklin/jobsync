@@ -256,6 +256,12 @@ function JobDetails({ job }: { job: JobResponse }) {
               </a>
             </div>
           )}
+          {job?.Company?.description && (
+            <div className="my-4 ml-4">
+              <h3 className="font-semibold mb-2">About the Company</h3>
+              <TipTapContentViewer content={job.Company.description} />
+            </div>
+          )}
           <div className="my-4 ml-4">
             <TipTapContentViewer content={job?.description} />
           </div>

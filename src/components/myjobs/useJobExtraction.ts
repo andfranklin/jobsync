@@ -8,7 +8,7 @@ import { JobExtraction } from "@/models/jobExtraction.schema";
 import { Company, JobLocation, JobSource, JobTitle } from "@/models/job.model";
 import { SALARY_VALUES } from "@/lib/data/salaryRangeData";
 import { createLocation, createJobSource } from "@/actions/job.actions";
-import { addCompany } from "@/actions/company.actions";
+import { addCompany, enrichCompanyFromScrape } from "@/actions/company.actions";
 import { createJobTitle } from "@/actions/jobtitle.actions";
 import { getFromLocalStorage } from "@/utils/localstorage.utils";
 import { toast } from "../ui/use-toast";
@@ -211,6 +211,26 @@ export function useJobExtraction({
     }
   };
 
+  const enrichCompanyInBackground = async (companyId: string, url: string, selectedModel: any) => {
+    try {
+      const res = await fetch("/api/ai/company/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, selectedModel }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.description || data?.logoUrl) {
+        await enrichCompanyFromScrape(companyId, {
+          description: data.description,
+          logoUrl: data.logoUrl,
+        });
+      }
+    } catch {
+      // Company enrichment is best-effort — don't show errors
+    }
+  };
+
   const getSelectedModel = () => {
     const selectedModel = getFromLocalStorage("aiSettings", null);
     if (!selectedModel) {
@@ -224,7 +244,7 @@ export function useJobExtraction({
     return selectedModel;
   };
 
-  const processExtractResponse = async (res: Response, sourceUrl?: string) => {
+  const processExtractResponse = async (res: Response, sourceUrl?: string, selectedModel?: any) => {
     if (!res.ok) {
       const err = await res.json();
       const status = res.status;
@@ -243,6 +263,17 @@ export function useJobExtraction({
     await fillFormFromExtraction(extracted, sourceUrl);
     setShowPasteInput(false);
     setPasteContent("");
+
+    // Enrich company description in background (non-blocking)
+    if (sourceUrl && selectedModel) {
+      const companyId = form.getValues().company;
+      if (companyId) {
+        const company = companies.find((c) => c.id === companyId);
+        if (company && !company.description) {
+          enrichCompanyInBackground(companyId, sourceUrl, selectedModel);
+        }
+      }
+    }
 
     toast({
       variant: "success",
@@ -266,7 +297,7 @@ export function useJobExtraction({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, selectedModel, pipelineSettings }),
       });
-      await processExtractResponse(res, url);
+      await processExtractResponse(res, url, selectedModel);
     } catch {
       toast({
         variant: "destructive",

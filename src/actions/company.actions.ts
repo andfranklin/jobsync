@@ -197,6 +197,30 @@ export const updateCompanyDescription = async (
   }
 };
 
+export const enrichCompanyFromScrape = async (
+  companyId: string,
+  details: { description?: string | null; logoUrl?: string | null },
+): Promise<any | undefined> => {
+  try {
+    const user = await requireUser();
+
+    const data: Record<string, string | null> = {};
+    if (details.description) data.description = details.description;
+    if (details.logoUrl) data.logoUrl = details.logoUrl;
+
+    if (Object.keys(data).length === 0) return { success: true };
+
+    const res = await prisma.company.update({
+      where: { id: companyId, createdBy: user.id },
+      data,
+    });
+
+    return { success: true, data: res };
+  } catch (error) {
+    return handleError(error, "Failed to enrich company details. ");
+  }
+};
+
 export const deleteCompanyById = async (
   companyId: string,
 ): Promise<any | undefined> => {

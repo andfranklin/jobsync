@@ -27,6 +27,7 @@ import { toast } from "../ui/use-toast";
 import { addCompany, updateCompany } from "@/actions/company.actions";
 import { Company } from "@/models/job.model";
 import { getFromLocalStorage } from "@/utils/localstorage.utils";
+import { TipTapContentViewer } from "../TipTapContentViewer";
 
 type AddCompanyProps = {
   reloadCompanies: () => void;
@@ -267,6 +268,16 @@ function AddCompany({
                   )}
                 />
               </div>
+
+              {/* COMPANY DESCRIPTION (read-only preview) */}
+              {form.watch("description") && (
+                <div className="md:col-span-2">
+                  <FormLabel>Company Description</FormLabel>
+                  <div className="mt-1.5 rounded-md border p-3 text-sm text-muted-foreground">
+                    <TipTapContentViewer content={form.watch("description")!} />
+                  </div>
+                </div>
+              )}
 
               <div className="md:col-span-2 mt-4">
                 <DialogFooter>
